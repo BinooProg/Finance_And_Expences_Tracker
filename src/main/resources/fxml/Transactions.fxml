@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="550.0" prefWidth="950.0" style="-fx-background-color: #4f308c;" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="personal.finance.and.expense.tracker.system.TransactionsController">
+
+    <top>
+        <Label style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: white;" text="Transactions Management" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="20.0" top="20.0" />
+            </BorderPane.margin>
+        </Label>
+    </top>
+
+    <left>
+        <VBox alignment="TOP_CENTER" prefWidth="280.0" spacing="15.0" style="-fx-background-color: #6a4bb3;">
+            <padding>
+                <Insets bottom="20.0" left="15.0" right="15.0" top="20.0" />
+            </padding>
+
+            <children>
+                <Label style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;" text="Transaction Details" />
+
+                <TextField fx:id="amountField" promptText="Enter amount" style="-fx-background-radius: 10;" />
+
+                <ComboBox fx:id="categoryComboBox" prefWidth="220.0" promptText="Select category" />
+
+                <ComboBox fx:id="typeComboBox" prefWidth="220.0" promptText="Select type" />
+
+                <DatePicker fx:id="transactionDatePicker" prefWidth="220.0" />
+
+                <Button fx:id="addEditTransactionButton" onAction="#addEditTransactionBH" prefWidth="180.0" style="-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 20;" text="Add / Edit Transaction" />
+
+                <Button fx:id="clearButton" onAction="#clearBH" prefWidth="180.0" style="-fx-background-color: #454443; -fx-text-fill: white; -fx-background-radius: 20;" text="Clear" />
+
+                <Label fx:id="messageLabel" style="-fx-text-fill: white; -fx-font-weight: bold;" text="" />
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox alignment="CENTER" spacing="10.0">
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+            </padding>
+
+            <children>
+                <TableView fx:id="transactionsTable" prefHeight="400.0" prefWidth="620.0">
+                    <columns>
+                        <TableColumn fx:id="idColumn" prefWidth="70.0" text="ID" />
+                        <TableColumn fx:id="userIdColumn" prefWidth="80.0" text="User ID" />
+                        <TableColumn fx:id="categoryIdColumn" prefWidth="100.0" text="Category ID" />
+                        <TableColumn fx:id="amountColumn" prefWidth="100.0" text="Amount" />
+                        <TableColumn fx:id="typeColumn" prefWidth="120.0" text="Type" />
+                        <TableColumn fx:id="dateColumn" prefWidth="150.0" text="Date" />
+                    </columns>
+                </TableView>
+            </children>
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="15.0">
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+            </padding>
+
+            <children>
+                <Button fx:id="backButton" onAction="#backBH" prefWidth="120.0" style="-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 20;" text="Back" />
+            </children>
+        </HBox>
+    </bottom>
+
+</BorderPane>
