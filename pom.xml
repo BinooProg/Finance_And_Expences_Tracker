@@ -46,7 +46,7 @@
                     <execution>
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>com.example.finance_and_expences_tracker.HelloApplication</mainClass>
+                            <mainClass>app.HelloApplication</mainClass>
                         </configuration>
                     </execution>
                 </executions>

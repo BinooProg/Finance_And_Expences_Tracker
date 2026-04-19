@@ -1,9 +1,9 @@
-package com.example.finance_and_expences_tracker;
+package controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 
-public class HelloController {
+public class LoginController {
     @FXML
     private Label welcomeText;
 
