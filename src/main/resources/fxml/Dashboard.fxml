@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+
+<BorderPane prefHeight="456.0" prefWidth="781.0" style="-fx-background-color: #4f308c;" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="personal.finance.and.expense.tracker.system.DashboardController">
+
+                <!-- LEFT SIDEBAR -->
+    <left>
+        <VBox alignment="TOP_CENTER" prefHeight="453.0" prefWidth="117.0" spacing="20.0">
+            <padding>
+                <Insets right="10.0" top="10.0" />
+            </padding>
+
+                        <children>
+                <Button fx:id="categoriesButton" prefWidth="120" style="-fx-background-radius: 20; -fx-text-fill: white; -fx-font-size: 14; -fx-font-weight: bold; -fx-background-color: #000000;" text="Categories" />
+                <Button fx:id="transactionsButton" prefWidth="120" style="-fx-background-radius: 20; -fx-text-fill: white; -fx-font-size: 14; -fx-font-weight: bold; -fx-background-color: #000000;" text="Transactions" />
+                <Button fx:id="reportsButton" prefWidth="120" style="-fx-background-radius: 20; -fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 14; -fx-background-color: #000000;" text="Reports" />
+                <Button fx:id="logoutButton" prefWidth="120" style="-fx-background-radius: 20; -fx-font-size: 14; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-color: #000000;" text="Logout" />
+            </children>
+         <BorderPane.margin>
+            <Insets left="5.0" />
+         </BorderPane.margin>
+        </VBox>
+    </left>
+   <top>
+      <HBox alignment="CENTER" prefHeight="61.0" prefWidth="801.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label fx:id="welcomeLabel" alignment="CENTER" prefHeight="41.0" prefWidth="201.0" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;" text="welcom !" />
+         </children>
+      </HBox>
+   </top>
+   <center>
+      <HBox alignment="CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="0.0" prefWidth="700.0" style="-fx-background-radius: 10;" BorderPane.alignment="CENTER">
+         <children>
+            <ImageView fitHeight="414.0" fitWidth="678.0" pickOnBounds="true" preserveRatio="true" style="-fx-fit-width: 700;" HBox.hgrow="ALWAYS">
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+               <image>
+                  <Image url="@images/Dashboard-image.jpg" />
+               </image>
+            </ImageView>
+         </children>
+      </HBox>
+   </center>
+
+            </BorderPane>
