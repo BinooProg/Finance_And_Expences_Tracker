@@ -46,7 +46,7 @@
                     <execution>
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>app.HelloApplication</mainClass>
+                            <mainClass>app.Launcher</mainClass>
                         </configuration>
                     </execution>
                 </executions>
