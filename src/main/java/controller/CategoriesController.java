@@ -7,6 +7,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -32,6 +33,9 @@ public class CategoriesController {
 
     @FXML
     private Button addEditCategoryButton;
+    
+    @FXML
+    private Label messageLabel;
 
     @FXML
     private Button clearButton;
@@ -61,25 +65,27 @@ public class CategoriesController {
     }
 
     @FXML
-    private void addEditCategoryBH() {
-        String categoryName = categoryNameField.getText();
+private void addEditCategoryBH() {
+    String categoryName = categoryNameField.getText();
 
-        try {
-            if (selectedCategory == null) {
-                categoryService.addCategory(categoryName);
-            } else {
-                categoryService.updateCategory(selectedCategory.getId(), categoryName);
-            }
-
-            loadCategories();
-            clearForm();
-
-        } catch (IllegalArgumentException ex) {
-            showError(ex.getMessage());
-        } catch (Exception ex) {
-            showError("Failed to save category.");
+    try {
+        if (selectedCategory == null) {
+            categoryService.addCategory(categoryName);
+            showMessage("Category added successfully.");
+        } else {
+            categoryService.updateCategory(selectedCategory.getId(), categoryName);
+            showMessage("Category updated successfully.");
         }
+
+        loadCategories();
+       
+
+    } catch (IllegalArgumentException ex) {
+        showError(ex.getMessage());
+    } catch (Exception ex) {
+        showError("Failed to save category.");
     }
+}
 
     @FXML
     private void clearBH() {
@@ -120,7 +126,11 @@ public class CategoriesController {
         categoryNameField.clear();
         categoriesTable.getSelectionModel().clearSelection();
         selectedCategory = null;
+        messageLabel.setText("");
     }
+    private void showMessage(String message) {
+    messageLabel.setText(message);
+}
 
     private void showError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -137,4 +147,11 @@ public class CategoriesController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    
+    
+    
+    
+    
+    
+    
 }
