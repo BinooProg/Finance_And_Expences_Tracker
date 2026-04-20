@@ -54,11 +54,8 @@ public class LoginController {
                 DashboardController dashboardController = loader.getController();
                 dashboardController.setUserEmail(email);
 
-                Stage stage = (Stage) emailField.getScene().getWindow();
-                WindowManager.setDefaultWindowSize(stage);
-                stage.setScene(new Scene(root));
-                stage.setTitle("Dashboard");
-                stage.show();
+               Stage stage = (Stage) emailField.getScene().getWindow();
+               WindowManager.applyFixedScene(stage, root, "Dashboard");
             } else {
                 showError("Incorrect email or password.");
             }
