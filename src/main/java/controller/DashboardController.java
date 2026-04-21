@@ -2,8 +2,11 @@ package controller;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import model.User;
 import service.SessionManager;
 import service.UserService;
@@ -15,16 +18,10 @@ public class DashboardController {
     private Label welcomeLabel;
 
     @FXML
-    private Button categoriesButton;
+    private StackPane contentArea;
 
     @FXML
-    private Button transactionsButton;
-
-    @FXML
-    private Button reportsButton;
-
-    @FXML
-    private Button logoutButton;
+    private VBox homeContent;
 
     private String userEmail;
     private final UserService userService = new UserService();
@@ -32,6 +29,7 @@ public class DashboardController {
     @FXML
     public void initialize() {
         welcomeLabel.setText("Welcome to Dashboard!");
+        showHomeContent();
     }
 
     public void setUserEmail(String email) {
@@ -55,26 +53,40 @@ public class DashboardController {
 
     @FXML
     protected void onCategoriesButtonClick(ActionEvent event) {
-        switchScene(event, "/fxml/categories.fxml", "Categories");
+        loadContent("/fxml/categories.fxml");
     }
 
     @FXML
     protected void onTransactionsButtonClick(ActionEvent event) {
-        switchScene(event, "/fxml/transactions.fxml", "Transactions");
+        loadContent("/fxml/transactions.fxml");
     }
 
     @FXML
     protected void onReportsButtonClick(ActionEvent event) {
-        switchScene(event, "/fxml/reports.fxml", "Reports");
+        loadContent("/fxml/reports.fxml");
     }
 
     @FXML
     protected void onLogoutButtonClick(ActionEvent event) {
         SessionManager.clearSession();
-        switchScene(event, "/fxml/login.fxml", "Login");
+        WindowManager.switchToLogin(event);
     }
 
-    private void switchScene(ActionEvent event, String fxmlPath, String title) {
-        WindowManager.switchScene(event, fxmlPath, title);
+    private void showHomeContent() {
+        if (contentArea != null && homeContent != null) {
+            contentArea.getChildren().setAll(homeContent);
+        }
+    }
+
+    private void loadContent(String fxmlPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent loadedContent = loader.load();
+
+            contentArea.getChildren().setAll(loadedContent);
+        } catch (Exception e) {
+            WindowManager.showErrorAlert("Navigation Error", "Unable to load page: " + fxmlPath);
+            e.printStackTrace();
+        }
     }
 }

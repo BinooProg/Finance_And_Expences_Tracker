@@ -11,14 +11,14 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane prefHeight="500.0" prefWidth="800.0"
-            style="-fx-background-color: #4f308c;"
+            stylesheets="@../css/app.css"
             xmlns="http://javafx.com/javafx/25"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="controller.CategoriesController">
 
     <top>
         <Label text="Categories Management"
-               style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: white;"
+               styleClass="page-title"
                BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets top="20.0" bottom="20.0" />
@@ -30,46 +30,46 @@
         <VBox alignment="TOP_CENTER"
               prefWidth="250.0"
               spacing="15.0"
-              style="-fx-background-color: #6a4bb3;">
+              styleClass="sidebar-card">
             <padding>
                 <Insets top="20.0" right="15.0" bottom="20.0" left="15.0" />
             </padding>
 
             <children>
                 <Label text="Category Details"
-                       style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;" />
+                       styleClass="section-title" />
 
                 <TextField fx:id="categoryNameField"
                            promptText="Enter category name"
-                           style="-fx-background-radius: 10;" />
+                           styleClass="field-input" />
 
                 <Button fx:id="addEditCategoryButton"
                         text="Add / Edit Category"
-                        onAction="#addEditCategoryBH"
+                        onAction="#onAddEditCategoryButtonClick"
                         prefWidth="160.0"
-                        style="-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 20;" />
+                        styleClass="primary-button compact-button" />
 
                 <Label fx:id="messageLabel"
                        text="Choose your category"
-                       style="-fx-text-fill: white; -fx-font-weight: bold;" />
+                       styleClass="message-label" />
 
                 <Button fx:id="clearButton"
                         text="Clear"
-                        onAction="#clearBH"
+                        onAction="#onClearButtonClick"
                         prefWidth="160.0"
-                        style="-fx-background-color: #454443; -fx-text-fill: white; -fx-background-radius: 20;" />
+                        styleClass="secondary-button compact-button" />
 
                 <Button fx:id="deleteButton"
                         text="Delete"
                         onAction="#onDeleteButtonClick"
                         prefWidth="160.0"
-                        style="-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 20;" />
+                        styleClass="primary-button compact-button" />
             </children>
         </VBox>
     </left>
 
     <center>
-        <VBox alignment="CENTER" spacing="10.0">
+        <VBox alignment="CENTER" spacing="10.0" styleClass="content-card">
             <padding>
                 <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
             </padding>
@@ -79,8 +79,8 @@
                            prefHeight="350.0"
                            prefWidth="500.0">
                     <columns>
-                        <TableColumn fx:id="idColumn" prefWidth="150.0" text="ID" />
-                        <TableColumn fx:id="nameColumn" prefWidth="350.0" text="Category Name" />
+                        <TableColumn fx:id="idColumn" prefWidth="80.0" text="ID" />
+                        <TableColumn fx:id="nameColumn" prefWidth="400.0" text="Category Name" />
                     </columns>
                 </TableView>
             </children>
@@ -96,11 +96,12 @@
             <children>
                 <Button fx:id="backButton"
                         text="Back"
-                        onAction="#backBH"
+                        onAction="#onBackButtonClick"
                         prefWidth="120.0"
-                        style="-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 20;" />
+                        styleClass="secondary-button compact-button" />
             </children>
         </HBox>
     </bottom>
 
 </BorderPane>
+

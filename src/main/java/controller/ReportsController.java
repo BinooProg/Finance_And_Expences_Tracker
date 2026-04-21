@@ -1,28 +1,24 @@
 package controller;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.event.ActionEvent;
-import javafx.stage.Stage;
 import service.TransactionService;
-
-import java.io.IOException;
+import util.WindowManager;
 
 public class ReportsController {
+    private static final String BALANCE_POSITIVE_CLASS = "report-balance-positive";
+    private static final String BALANCE_NEGATIVE_CLASS = "report-balance-negative";
 
     @FXML
-    private Label totalIncomeLabel;
+    private Label totalIncomeValueLabel;
 
     @FXML
-    private Label totalExpensesLabel;
+    private Label totalExpensesValueLabel;
 
     @FXML
-    private Label balanceLabel;
+    private Label balanceValueLabel;
 
     @FXML
     private Button backButton;
@@ -35,21 +31,23 @@ public class ReportsController {
         double expenses = transactionService.getTotalExpenses();
         double balance = income - expenses;
 
-        totalIncomeLabel.setText(String.format("Total Income: %.2f", income));
-        totalExpensesLabel.setText(String.format("Total Expenses: %.2f", expenses));
-        balanceLabel.setText(String.format("Balance: %.2f", balance));
+        totalIncomeValueLabel.setText(String.format("%.2f", income));
+        totalExpensesValueLabel.setText(String.format("%.2f", expenses));
+        balanceValueLabel.setText(String.format("%.2f", balance));
+        updateBalanceStyle(balance);
     }
 
     @FXML
-    protected void backBH(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/fxml/dashboard.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Dashboard");
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
+    protected void onBackButtonClick(ActionEvent event) {
+        WindowManager.switchToDashboard(event);
+    }
+
+    private void updateBalanceStyle(double balance) {
+        balanceValueLabel.getStyleClass().removeAll(BALANCE_POSITIVE_CLASS, BALANCE_NEGATIVE_CLASS);
+        if (balance < 0) {
+            balanceValueLabel.getStyleClass().add(BALANCE_NEGATIVE_CLASS);
+        } else {
+            balanceValueLabel.getStyleClass().add(BALANCE_POSITIVE_CLASS);
         }
     }
 }

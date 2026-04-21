@@ -3,10 +3,7 @@ package controller;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.FXML;
-import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -62,7 +59,8 @@ public class LoginController {
                 dashboardController.setUserEmail(email);
 
                Stage stage = (Stage) emailField.getScene().getWindow();
-               WindowManager.applyFixedScene(stage, root, "Dashboard");
+               WindowManager.applyFixedSceneWithSize(stage, root, "Dashboard",
+                       WindowManager.DASHBOARD_WIDTH, WindowManager.DASHBOARD_HEIGHT);
             } else {
                 showError("Incorrect email or password.");
             }
@@ -79,22 +77,14 @@ public class LoginController {
     @FXML
     protected void onSignupButtonClick(ActionEvent event) {
         try {
-            Parent registerRoot = FXMLLoader.load(getClass().getResource("/fxml/signup.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(registerRoot));
-            stage.setTitle("Sign Up");
-            stage.show();
+            WindowManager.switchToSignup(event);
         } catch (Exception ex) {
             showError("Unable to open register page.");
         }
     }
 
     private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        WindowManager.showErrorAlert("Error", message);
     }
 
     public void showSuccessMessage(String message) {

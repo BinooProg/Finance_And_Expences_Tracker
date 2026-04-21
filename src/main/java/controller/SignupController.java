@@ -3,12 +3,12 @@ package controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import service.AuthService;
 import util.VailEmailUtil;
+import util.WindowManager;
 
 import java.io.IOException;
 
@@ -82,15 +82,18 @@ public class SignupController {
     private void goToLoginPage(String successMessage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login.fxml"));
-            Scene scene = new Scene(loader.load());
+            Scene scene = new Scene(loader.load(), WindowManager.AUTH_WIDTH, WindowManager.AUTH_HEIGHT);
             LoginController loginController = loader.getController();
             if (successMessage != null && !successMessage.trim().isEmpty()) {
                 loginController.showSuccessMessage(successMessage.trim());
             }
 
             Stage stage = (Stage) firstNameField.getScene().getWindow();
+            stage.setMinWidth(WindowManager.AUTH_WIDTH);
+            stage.setMinHeight(WindowManager.AUTH_HEIGHT);
             stage.setScene(scene);
-            stage.setTitle("Login");
+            stage.setTitle("Finance Tracker");
+            stage.centerOnScreen();
             stage.show();
         } catch (IOException ex) {
             showError("Unable to open login page.");
@@ -110,10 +113,6 @@ public class SignupController {
     }
 
     private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        WindowManager.showErrorAlert("Error", message);
     }
 }

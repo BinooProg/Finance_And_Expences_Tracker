@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class CategoryService {
     private static final String FILE_PATH = "src/main/resources/data/categories.txt";
@@ -47,10 +48,11 @@ public class CategoryService {
         }
 
         String trimmedName = name.trim();
+        String normalizedInput = normalizeName(trimmedName);
         List<Category> categories = getAllCategories();
 
         for (Category c : categories) {
-            if (c.getName().equalsIgnoreCase(trimmedName)) {
+            if (normalizeName(c.getName()).equals(normalizedInput)) {
                 throw new IllegalArgumentException("Category already exists.");
             }
         }
@@ -77,11 +79,12 @@ public class CategoryService {
         }
 
         String trimmedName = newName.trim();
+        String normalizedInput = normalizeName(trimmedName);
         List<Category> categories = getAllCategories();
         boolean found = false;
 
         for (Category category : categories) {
-            if (category.getId() != id && category.getName().equalsIgnoreCase(trimmedName)) {
+            if (category.getId() != id && normalizeName(category.getName()).equals(normalizedInput)) {
                 throw new IllegalArgumentException("Category already exists.");
             }
         }
@@ -152,5 +155,9 @@ public class CategoryService {
         if (!Files.exists(path)) {
             Files.createFile(path);
         }
+    }
+
+    private String normalizeName(String name) {
+        return name.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 }

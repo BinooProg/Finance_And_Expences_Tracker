@@ -2,14 +2,10 @@ package controller;
 
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.event.ActionEvent;
-import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import model.Category;
 import model.Transaction;
 import model.User;
@@ -17,8 +13,8 @@ import service.CategoryService;
 import service.SessionManager;
 import service.TransactionService;
 import service.UserService;
+import util.WindowManager;
 
-import java.io.IOException;
 import java.time.LocalDate;
 
 public class TransactionsController {
@@ -43,9 +39,6 @@ public class TransactionsController {
 
     @FXML
     private Button backButton;
-
-    @FXML
-    private Label messageLabel;
 
     @FXML
     private TableView<Transaction> transactionsTable;
@@ -88,6 +81,7 @@ public class TransactionsController {
                 new javafx.beans.property.SimpleObjectProperty<>(cellData.getValue().getCategory().getId()));
 
         categoryComboBox.setItems(FXCollections.observableArrayList(categoryService.getAllCategories()));
+        configureCategoryComboBoxDisplay();
         typeComboBox.setItems(FXCollections.observableArrayList("Income", "Expense"));
 
         loadTransactions();
@@ -105,13 +99,13 @@ public class TransactionsController {
     }
 
     @FXML
-    protected void addEditTransactionBH() {
+    protected void onAddEditTransactionButtonClick() {
         try {
             String email = SessionManager.getLoggedInUserEmail();
             User user = userService.getUserByEmail(email);
 
             if (user == null) {
-                showMessage("No logged-in user found.");
+                WindowManager.showErrorAlert("Input Error", "No logged-in user found.");
                 return;
             }
 
@@ -121,37 +115,48 @@ public class TransactionsController {
             LocalDate date = transactionDatePicker.getValue();
 
             if (category == null || type == null || date == null) {
-                showMessage("Please complete all fields.");
+                WindowManager.showErrorAlert("Input Error", "Please complete all fields.");
+                return;
+            }
+
+            if (amount <= 0) {
+                WindowManager.showErrorAlert("Input Error", "Amount must be greater than zero.");
                 return;
             }
 
             if (selectedTransaction == null) {
                 transactionService.addTransaction(user, category, amount, type, date.toString());
-                showMessage("Transaction added successfully.");
+                WindowManager.showInfoAlert("Success", "Transaction added successfully.");
             } else {
                 transactionService.updateTransaction(selectedTransaction.getId(), user, category, amount, type, date.toString());
-                showMessage("Transaction updated successfully.");
+                WindowManager.showInfoAlert("Success", "Transaction updated successfully.");
             }
 
             clearForm();
             loadTransactions();
 
         } catch (NumberFormatException e) {
-            showMessage("Amount must be a valid number.");
+            WindowManager.showErrorAlert("Input Error", "Amount must be a valid number.");
         } catch (Exception e) {
-            showMessage(e.getMessage());
+            String message = e.getMessage();
+            WindowManager.showErrorAlert("Input Error",
+                    (message == null || message.isBlank()) ? "Unable to save transaction." : message);
         }
     }
 
     @FXML
-    protected void clearBH() {
+    protected void onClearButtonClick() {
         clearForm();
-        showMessage("");
     }
 
     @FXML
-    protected void backBH(ActionEvent event) {
-        switchScene(event, "/fxml/dashboard.fxml", "Dashboard");
+    protected void onTodayButtonClick() {
+        transactionDatePicker.setValue(LocalDate.now());
+    }
+
+    @FXML
+    protected void onBackButtonClick(ActionEvent event) {
+        WindowManager.switchToDashboard(event);
     }
 
     private void loadTransactions() {
@@ -167,19 +172,38 @@ public class TransactionsController {
         transactionsTable.getSelectionModel().clearSelection();
     }
 
-    private void showMessage(String msg) {
-        messageLabel.setText(msg);
+    private void configureCategoryComboBoxDisplay() {
+        categoryComboBox.setCellFactory(listView -> new ListCell<>() {
+            @Override
+            protected void updateItem(Category item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : formatCategory(item));
+            }
+        });
+
+        categoryComboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Category item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : formatCategory(item));
+            }
+        });
+
+        categoryComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Category category) {
+                return category == null ? "" : formatCategory(category);
+            }
+
+            @Override
+            public Category fromString(String string) {
+                return null;
+            }
+        });
     }
 
-    private void switchScene(ActionEvent event, String path, String title) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource(path));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle(title);
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private String formatCategory(Category category) {
+        return category.getId() + " - " + category.getName();
     }
+
 }

@@ -5,7 +5,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -43,6 +42,9 @@ public class CategoriesController {
     @FXML
     private Button deleteButton;
 
+    @FXML
+    private Button backButton;
+
     private Category selectedCategory;
 
     @FXML
@@ -65,7 +67,7 @@ public class CategoriesController {
     }
 
     @FXML
-private void addEditCategoryBH() {
+private void onAddEditCategoryButtonClick() {
     String categoryName = categoryNameField.getText();
 
     try {
@@ -88,7 +90,7 @@ private void addEditCategoryBH() {
 }
 
     @FXML
-    private void clearBH() {
+    private void onClearButtonClick() {
         clearForm();
     }
 
@@ -114,8 +116,8 @@ private void addEditCategoryBH() {
     }
 
     @FXML
-    private void backBH(ActionEvent event) {
-        WindowManager.switchScene(event, "/fxml/dashboard.fxml", "Dashboard");
+    private void onBackButtonClick(ActionEvent event) {
+        WindowManager.switchToDashboard(event);
     }
 
     private void loadCategories() {
@@ -133,19 +135,11 @@ private void addEditCategoryBH() {
 }
 
     private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        WindowManager.showErrorAlert("Error", message);
     }
 
     private void showInfo(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Information");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        WindowManager.showInfoAlert("Information", message);
     }
     
     

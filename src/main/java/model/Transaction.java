@@ -13,6 +13,7 @@ public class Transaction {
         this.user = user;
         this.category = category;
         this.amount = amount;
+        this.type = type.trim().equalsIgnoreCase("income") ? "income" : "expense";
         this.type = type;
         this.date = date;
     }
@@ -58,17 +59,13 @@ public class Transaction {
     }
 
     public void setType(String type) {
-        this.type = type;
+        this.type = type.trim().equalsIgnoreCase("income") ? "income" : "expense";
     }
 
     public void setDate(String date) {
         this.date = date;
     }
 
-    public void displayTransaction() {
-        String format = "| %-5d | U-%-6d | C-%-6d | %10.2f | %-8s | %-12s |%n";
-        System.out.printf(format, id, user.getId(), category.getId(), amount, type, date);
-    }
 
     @Override
     public String toString() {

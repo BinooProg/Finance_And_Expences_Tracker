@@ -4,79 +4,97 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.Priority?>
-<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane fx:id="rootPane"
-            prefHeight="700.0"
-            prefWidth="1200.0"
+            prefHeight="620.0"
+            prefWidth="1220.0"
             minHeight="500.0"
-            minWidth="800.0"
+            minWidth="900.0"
             maxHeight="Infinity"
             maxWidth="Infinity"
-            style="-fx-background-color: #4f308c;"
+            styleClass="app-shell"
+            stylesheets="@../css/app.css"
             xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="controller.DashboardController">
 
-    <center>
-        <VBox alignment="CENTER"
-              spacing="40.0"
-              maxWidth="Infinity"
-              maxHeight="Infinity"
-              fillWidth="false">
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="nav-bar">
             <padding>
-                <Insets top="50.0" right="60.0" bottom="50.0" left="60.0" />
+                <Insets top="14.0" right="22.0" bottom="14.0" left="22.0" />
             </padding>
-
             <children>
-                <Label fx:id="welcomeLabel"
-                       text="Welcome!"
-                       wrapText="true"
-                       textAlignment="CENTER"
-                       maxWidth="600.0"
-                       style="-fx-font-size: 32; -fx-font-weight: bold; -fx-text-fill: white; -fx-padding: 0 0 20 0;" />
+                <Label text="Finance Tracker" styleClass="nav-title" />
+                <Pane HBox.hgrow="ALWAYS" />
+                <Button fx:id="logoutButton"
+                        text="Logout"
+                        onAction="#onLogoutButtonClick"
+                        prefWidth="110.0"
+                        styleClass="secondary-button compact-button" />
+            </children>
+        </HBox>
+    </top>
 
-                <VBox alignment="CENTER"
-                      spacing="20.0"
-                      prefWidth="300.0"
-                      maxWidth="380.0"
-                      style="-fx-background-color: rgba(0,0,0,0.1); -fx-background-radius: 15; -fx-padding: 30 25 30 25;">
-                    <children>
-                        <Button fx:id="categoriesButton"
-                                text="Categories"
-                                onAction="#onCategoriesButtonClick"
-                                maxWidth="Infinity"
-                                prefHeight="55.0"
-                                style="-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 25; -fx-cursor: hand;" />
-
-                        <Button fx:id="transactionsButton"
-                                text="Transactions"
-                                onAction="#onTransactionsButtonClick"
-                                maxWidth="Infinity"
-                                prefHeight="55.0"
-                                style="-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 25; -fx-cursor: hand;" />
-
-                        <Button fx:id="reportsButton"
-                                text="Reports"
-                                onAction="#onReportsButtonClick"
-                                maxWidth="Infinity"
-                                prefHeight="55.0"
-                                style="-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 25; -fx-cursor: hand;" />
-
-                        <Button fx:id="logoutButton"
-                                text="Logout"
-                                onAction="#onLogoutButtonClick"
-                                maxWidth="Infinity"
-                                prefHeight="55.0"
-                                style="-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 25; -fx-cursor: hand;" />
-                    </children>
-                </VBox>
-
-                <Region VBox.vgrow="ALWAYS" />
+    <left>
+        <VBox alignment="TOP_CENTER"
+              spacing="14.0"
+              prefWidth="190.0"
+              styleClass="sidebar-card">
+            <BorderPane.margin>
+                <Insets top="18.0" bottom="18.0" left="18.0" />
+            </BorderPane.margin>
+            <padding>
+                <Insets top="20.0" right="14.0" bottom="20.0" left="14.0" />
+            </padding>
+            <children>
+                <Label text="Navigation" styleClass="section-title" />
+                <Button fx:id="categoriesButton"
+                        text="Categories"
+                        onAction="#onCategoriesButtonClick"
+                        maxWidth="Infinity"
+                        prefHeight="46.0"
+                        styleClass="primary-button compact-button" />
+                <Button fx:id="transactionsButton"
+                        text="Transactions"
+                        onAction="#onTransactionsButtonClick"
+                        maxWidth="Infinity"
+                        prefHeight="46.0"
+                        styleClass="primary-button compact-button" />
+                <Button fx:id="reportsButton"
+                        text="Reports"
+                        onAction="#onReportsButtonClick"
+                        maxWidth="Infinity"
+                        prefHeight="46.0"
+                        styleClass="primary-button compact-button" />
             </children>
         </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" maxWidth="Infinity" maxHeight="Infinity" styleClass="content-card">
+            <BorderPane.margin>
+                <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+            </BorderPane.margin>
+            <children>
+                <VBox fx:id="homeContent" alignment="CENTER" spacing="10.0" maxWidth="620.0">
+                    <padding>
+                        <Insets top="40.0" right="30.0" bottom="40.0" left="30.0" />
+                    </padding>
+                    <children>
+                        <Label fx:id="welcomeLabel"
+                               text="Welcome!"
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               styleClass="welcome-hero" />
+                        <Label text="Choose a section from the left menu to continue." styleClass="sub-heading" />
+                    </children>
+                </VBox>
+            </children>
+        </StackPane>
     </center>
 
 </BorderPane>
