@@ -8,10 +8,65 @@ public class Transaction {
     private String type;
     private String date;
 
-    public void displayTransaction() {
-        // Format: ID (5 chars), User/Cat IDs (8 chars), Amount (10 chars), Type (8 chars), Date
-        String format = "| %-5d | U-%-6d | C-%-6d | %10.2f | %-8s | %-12s |%n";
+    public Transaction(int id, User user, Category category, double amount, String type, String date) {
+        this.id = id;
+        this.user = user;
+        this.category = category;
+        this.amount = amount;
+        this.type = type;
+        this.date = date;
+    }
 
+    public int getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public void displayTransaction() {
+        String format = "| %-5d | U-%-6d | C-%-6d | %10.2f | %-8s | %-12s |%n";
         System.out.printf(format, id, user.getId(), category.getId(), amount, type, date);
     }
 

@@ -1,0 +1,8 @@
+2|Transport
+3|Entertainment
+4|Health
+5|Shopping
+6|Education
+7|Bills
+8|Salary
+9|Other

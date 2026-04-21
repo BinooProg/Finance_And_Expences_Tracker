@@ -6,16 +6,18 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
+import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import service.AuthService;
+import service.SessionManager;
 import util.VailEmailUtil;
+import util.WindowManager;
+
+import java.io.IOException;
 
 public class LoginController {
-    private static final String ERROR_STYLE_CLASS = "error-text";
-    private static final String SUCCESS_STYLE_CLASS = "success-text";
 
     private final AuthService authService = new AuthService();
 
@@ -26,9 +28,6 @@ public class LoginController {
     private PasswordField passwordField;
 
     @FXML
-    private Label errorLabel;
-
-    @FXML
     protected void onLoginButtonClick() {
         String email = emailField.getText();
         String password = passwordField.getText();
@@ -37,6 +36,7 @@ public class LoginController {
             showError("Incorrect information: invalid email format.");
             return;
         }
+
         if (password == null || password.trim().isEmpty()) {
             showError("Incorrect information: password is required.");
             return;
@@ -44,13 +44,28 @@ public class LoginController {
 
         try {
             boolean isValid = authService.validateUser(email, password);
+
             if (isValid) {
-                showSuccess("Login successful.");
+                SessionManager.setLoggedInUserEmail(email);
+
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/dashboard.fxml"));
+                Parent root = loader.load();
+
+                DashboardController dashboardController = loader.getController();
+                dashboardController.setUserEmail(email);
+
+               Stage stage = (Stage) emailField.getScene().getWindow();
+               WindowManager.applyFixedScene(stage, root, "Dashboard");
             } else {
                 showError("Incorrect email or password.");
             }
+
+        } catch (IOException e) {
+            showError("Unable to load dashboard page.");
+            e.printStackTrace();
         } catch (Exception ex) {
             showError("Unable to login. Please try again.");
+            ex.printStackTrace();
         }
     }
 
@@ -68,18 +83,10 @@ public class LoginController {
     }
 
     private void showError(String message) {
-        errorLabel.getStyleClass().remove(SUCCESS_STYLE_CLASS);
-        if (!errorLabel.getStyleClass().contains(ERROR_STYLE_CLASS)) {
-            errorLabel.getStyleClass().add(ERROR_STYLE_CLASS);
-        }
-        errorLabel.setText(message);
-    }
-
-    private void showSuccess(String message) {
-        errorLabel.getStyleClass().remove(ERROR_STYLE_CLASS);
-        if (!errorLabel.getStyleClass().contains(SUCCESS_STYLE_CLASS)) {
-            errorLabel.getStyleClass().add(SUCCESS_STYLE_CLASS);
-        }
-        errorLabel.setText(message);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

@@ -1,10 +1,7 @@
 package controller;
 
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -70,8 +67,8 @@ public class SignupController {
 
         try {
             authService.createUser(firstName.trim(), lastName.trim(), email.trim(), password);
-            showSuccess("Account created successfully.");
             clearFields();
+            goToLoginPage();
         } catch (IllegalArgumentException ex) {
             showError(ex.getMessage());
         } catch (Exception ex) {
@@ -80,12 +77,22 @@ public class SignupController {
     }
 
     @FXML
-    protected void onBackButtonClick(ActionEvent event) {
+    protected void onBackButtonClick() {
         try {
-            Parent loginRoot = FXMLLoader.load(getClass().getResource("/fxml/login.fxml"));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(loginRoot));
-            stage.setTitle("Finance Tracker");
+            goToLoginPage();
+        } catch (Exception ex) {
+            showError("Unable to open login page.");
+        }
+    }
+
+    private void goToLoginPage() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = (Stage) firstNameField.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("Login");
             stage.show();
         } catch (IOException ex) {
             showError("Unable to open login page.");
