@@ -48,7 +48,6 @@
                     </children>
                 </HBox>
 
-                <Label fx:id="errorLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" minHeight="24.0" styleClass="message-label error-text" text="" textAlignment="CENTER" />
             </children>
         </VBox>
     </children>

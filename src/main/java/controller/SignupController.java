@@ -3,7 +3,7 @@ package controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
+import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -13,9 +13,6 @@ import util.VailEmailUtil;
 import java.io.IOException;
 
 public class SignupController {
-    private static final String ERROR_STYLE_CLASS = "error-text";
-    private static final String SUCCESS_STYLE_CLASS = "success-text";
-
     private final AuthService authService = new AuthService();
 
     @FXML
@@ -32,9 +29,6 @@ public class SignupController {
 
     @FXML
     private PasswordField confirmPasswordField;
-
-    @FXML
-    private Label errorLabel;
 
     @FXML
     protected void onSignupButtonClick() {
@@ -68,7 +62,7 @@ public class SignupController {
         try {
             authService.createUser(firstName.trim(), lastName.trim(), email.trim(), password);
             clearFields();
-            goToLoginPage();
+            goToLoginPage("account registered.");
         } catch (IllegalArgumentException ex) {
             showError(ex.getMessage());
         } catch (Exception ex) {
@@ -79,16 +73,20 @@ public class SignupController {
     @FXML
     protected void onBackButtonClick() {
         try {
-            goToLoginPage();
+            goToLoginPage(null);
         } catch (Exception ex) {
             showError("Unable to open login page.");
         }
     }
 
-    private void goToLoginPage() {
+    private void goToLoginPage(String successMessage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login.fxml"));
             Scene scene = new Scene(loader.load());
+            LoginController loginController = loader.getController();
+            if (successMessage != null && !successMessage.trim().isEmpty()) {
+                loginController.showSuccessMessage(successMessage.trim());
+            }
 
             Stage stage = (Stage) firstNameField.getScene().getWindow();
             stage.setScene(scene);
@@ -112,18 +110,10 @@ public class SignupController {
     }
 
     private void showError(String message) {
-        errorLabel.getStyleClass().remove(SUCCESS_STYLE_CLASS);
-        if (!errorLabel.getStyleClass().contains(ERROR_STYLE_CLASS)) {
-            errorLabel.getStyleClass().add(ERROR_STYLE_CLASS);
-        }
-        errorLabel.setText(message);
-    }
-
-    private void showSuccess(String message) {
-        errorLabel.getStyleClass().remove(ERROR_STYLE_CLASS);
-        if (!errorLabel.getStyleClass().contains(SUCCESS_STYLE_CLASS)) {
-            errorLabel.getStyleClass().add(SUCCESS_STYLE_CLASS);
-        }
-        errorLabel.setText(message);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

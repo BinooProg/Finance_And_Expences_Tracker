@@ -7,6 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -18,6 +19,8 @@ import util.WindowManager;
 import java.io.IOException;
 
 public class LoginController {
+    private static final String ERROR_STYLE_CLASS = "error-text";
+    private static final String SUCCESS_STYLE_CLASS = "success-text";
 
     private final AuthService authService = new AuthService();
 
@@ -28,7 +31,11 @@ public class LoginController {
     private PasswordField passwordField;
 
     @FXML
+    private Label errorLabel;
+
+    @FXML
     protected void onLoginButtonClick() {
+        clearInlineMessage();
         String email = emailField.getText();
         String password = passwordField.getText();
 
@@ -88,5 +95,21 @@ public class LoginController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    public void showSuccessMessage(String message) {
+        errorLabel.getStyleClass().remove(ERROR_STYLE_CLASS);
+        if (!errorLabel.getStyleClass().contains(SUCCESS_STYLE_CLASS)) {
+            errorLabel.getStyleClass().add(SUCCESS_STYLE_CLASS);
+        }
+        errorLabel.setText(message);
+    }
+
+    private void clearInlineMessage() {
+        errorLabel.setText("");
+        errorLabel.getStyleClass().remove(SUCCESS_STYLE_CLASS);
+        if (!errorLabel.getStyleClass().contains(ERROR_STYLE_CLASS)) {
+            errorLabel.getStyleClass().add(ERROR_STYLE_CLASS);
+        }
     }
 }
