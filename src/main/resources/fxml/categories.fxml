@@ -75,6 +75,11 @@
             </padding>
 
             <children>
+                <TextField fx:id="searchCategoryField"
+                           promptText="Search by category name"
+                           styleClass="field-input"
+                           prefWidth="500.0" />
+
                 <TableView fx:id="categoriesTable"
                            prefHeight="350.0"
                            prefWidth="500.0">

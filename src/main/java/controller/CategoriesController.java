@@ -3,6 +3,9 @@ package controller;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -20,6 +23,9 @@ public class CategoriesController {
 
     @FXML
     private TextField categoryNameField;
+
+    @FXML
+    private TextField searchCategoryField;
 
     @FXML
     private TableView<Category> categoriesTable;
@@ -46,6 +52,8 @@ public class CategoriesController {
     private Button backButton;
 
     private Category selectedCategory;
+    private final ObservableList<Category> categories = FXCollections.observableArrayList();
+    private FilteredList<Category> filteredCategories;
 
     @FXML
     public void initialize() {
@@ -54,6 +62,18 @@ public class CategoriesController {
 
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));
+
+        filteredCategories = new FilteredList<>(categories, category -> true);
+        SortedList<Category> sortedCategories = new SortedList<>(filteredCategories);
+        sortedCategories.comparatorProperty().bind(categoriesTable.comparatorProperty());
+        categoriesTable.setItems(sortedCategories);
+
+        searchCategoryField.textProperty().addListener((observable, oldValue, newValue) -> {
+            String keyword = newValue == null ? "" : newValue.trim().toLowerCase();
+
+            filteredCategories.setPredicate(category ->
+                    keyword.isEmpty() || category.getName().toLowerCase().contains(keyword));
+        });
 
         loadCategories();
 
@@ -121,7 +141,7 @@ private void onAddEditCategoryButtonClick() {
     }
 
     private void loadCategories() {
-        categoriesTable.setItems(FXCollections.observableArrayList(categoryService.getAllCategories()));
+        categories.setAll(categoryService.getAllCategories());
     }
 
     private void clearForm() {

@@ -4,6 +4,5 @@
 5|Shopping
 6|Education
 7|Bill
-8|Salary
+8|Salaro
 9|Others
-10|newCateg
