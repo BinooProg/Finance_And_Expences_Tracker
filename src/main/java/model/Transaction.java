@@ -14,7 +14,6 @@ public class Transaction {
         this.category = category;
         this.amount = amount;
         this.type = type.trim().equalsIgnoreCase("income") ? "income" : "expense";
-        this.type = type;
         this.date = date;
     }
 

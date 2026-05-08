@@ -51,7 +51,6 @@ public class TransactionService {
                         transactions.add(new Transaction(id, user, category, amount, type, date));
                     }
                 } catch (NumberFormatException ex) {
-                    // تجاهل السطر التالف بدل ما يوقف تحميل كل البيانات
                 }
             }
         } catch (IOException e) {

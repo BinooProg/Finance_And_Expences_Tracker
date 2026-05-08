@@ -5,4 +5,5 @@
 6|Education
 7|Bill
 8|Salary
-9|Other
+9|Others
+10|newCateg

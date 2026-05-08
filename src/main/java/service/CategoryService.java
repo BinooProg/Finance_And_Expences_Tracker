@@ -12,8 +12,12 @@ import java.util.Locale;
 public class CategoryService {
     private static final String FILE_PATH = "src/main/resources/data/categories.txt";
 
+    List<Category> categories = new ArrayList<Category>();
+
     public List<Category> getAllCategories() {
-        List<Category> categories = new ArrayList<>();
+        if( !(categories==null || categories.isEmpty()))
+            return categories;
+
         Path path = Paths.get(FILE_PATH);
 
         try {
@@ -49,7 +53,7 @@ public class CategoryService {
 
         String trimmedName = name.trim();
         String normalizedInput = normalizeName(trimmedName);
-        List<Category> categories = getAllCategories();
+        // List<Category> categories = getAllCategories();
 
         for (Category c : categories) {
             if (normalizeName(c.getName()).equals(normalizedInput)) {
@@ -68,6 +72,7 @@ public class CategoryService {
                     StandardCharsets.UTF_8,
                     StandardOpenOption.APPEND
             );
+            categories.add(new Category(nextId, trimmedName));
         } catch (IOException e) {
             throw new RuntimeException("Failed to save category.", e);
         }
@@ -80,7 +85,7 @@ public class CategoryService {
 
         String trimmedName = newName.trim();
         String normalizedInput = normalizeName(trimmedName);
-        List<Category> categories = getAllCategories();
+        // List<Category> categories = getAllCategories();
         boolean found = false;
 
         for (Category category : categories) {
@@ -101,21 +106,21 @@ public class CategoryService {
             throw new IllegalArgumentException("Category not found.");
         }
 
-        rewriteAll(categories);
+        rewriteAll();
     }
 
     public void deleteCategory(int id) {
-        List<Category> categories = getAllCategories();
+        // List<Category> categories = getAllCategories();
         boolean removed = categories.removeIf(category -> category.getId() == id);
 
         if (!removed) {
             throw new IllegalArgumentException("Category not found.");
         }
 
-        rewriteAll(categories);
+        rewriteAll();
     }
 
-    private void rewriteAll(List<Category> categories) {
+    private void rewriteAll() {
         List<String> rows = new ArrayList<>();
         for (Category c : categories) {
             rows.add(c.getId() + "|" + c.getName());
