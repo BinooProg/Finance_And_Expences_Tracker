@@ -4,5 +4,5 @@
 5|Shopping
 6|Education
 7|Bill
-8|Salaro
+8|Salary
 9|Others

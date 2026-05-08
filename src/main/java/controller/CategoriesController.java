@@ -38,7 +38,7 @@ public class CategoriesController {
 
     @FXML
     private Button addEditCategoryButton;
-    
+
     @FXML
     private Label messageLabel;
 
@@ -63,18 +63,7 @@ public class CategoriesController {
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));
 
-        filteredCategories = new FilteredList<>(categories, category -> true);
-        SortedList<Category> sortedCategories = new SortedList<>(filteredCategories);
-        sortedCategories.comparatorProperty().bind(categoriesTable.comparatorProperty());
-        categoriesTable.setItems(sortedCategories);
-
-        searchCategoryField.textProperty().addListener((observable, oldValue, newValue) -> {
-            String keyword = newValue == null ? "" : newValue.trim().toLowerCase();
-
-            filteredCategories.setPredicate(category ->
-                    keyword.isEmpty() || category.getName().toLowerCase().contains(keyword));
-        });
-
+        bindSearch();
         loadCategories();
 
         categoriesTable.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
@@ -87,27 +76,25 @@ public class CategoriesController {
     }
 
     @FXML
-private void onAddEditCategoryButtonClick() {
-    String categoryName = categoryNameField.getText();
+    private void onAddEditCategoryButtonClick() {
+        String categoryName = categoryNameField.getText();
 
-    try {
-        if (selectedCategory == null) {
-            categoryService.addCategory(categoryName);
-            showMessage("Category added successfully.");
-        } else {
-            categoryService.updateCategory(selectedCategory.getId(), categoryName);
-            showMessage("Category updated successfully.");
+        try {
+            if (selectedCategory == null) {
+                categoryService.addCategory(categoryName);
+                showMessage("Category added successfully.");
+            } else {
+                categoryService.updateCategory(selectedCategory.getId(), categoryName);
+                showMessage("Category updated successfully.");
+            }
+
+            loadCategories();
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+        } catch (Exception ex) {
+            showError("Failed to save category.");
         }
-
-        loadCategories();
-       
-
-    } catch (IllegalArgumentException ex) {
-        showError(ex.getMessage());
-    } catch (Exception ex) {
-        showError("Failed to save category.");
     }
-}
 
     @FXML
     private void onClearButtonClick() {
@@ -140,6 +127,23 @@ private void onAddEditCategoryButtonClick() {
         WindowManager.switchToDashboard(event);
     }
 
+    private void bindSearch() {
+        filteredCategories = new FilteredList<>(categories, category -> true);
+        SortedList<Category> sortedCategories = new SortedList<>(filteredCategories);
+        sortedCategories.comparatorProperty().bind(categoriesTable.comparatorProperty());
+        categoriesTable.setItems(sortedCategories);
+
+        searchCategoryField.textProperty().addListener((observable, oldValue, newValue) ->
+                applyCategoryFilter(newValue));
+    }
+
+    private void applyCategoryFilter(String searchText) {
+        String keyword = searchText == null ? "" : searchText.trim().toLowerCase();
+
+        filteredCategories.setPredicate(category ->
+                keyword.isEmpty() || category.getName().toLowerCase().contains(keyword));
+    }
+
     private void loadCategories() {
         categories.setAll(categoryService.getAllCategories());
     }
@@ -150,9 +154,10 @@ private void onAddEditCategoryButtonClick() {
         selectedCategory = null;
         messageLabel.setText("");
     }
+
     private void showMessage(String message) {
-    messageLabel.setText(message);
-}
+        messageLabel.setText(message);
+    }
 
     private void showError(String message) {
         WindowManager.showErrorAlert("Error", message);
@@ -161,11 +166,4 @@ private void onAddEditCategoryButtonClick() {
     private void showInfo(String message) {
         WindowManager.showInfoAlert("Information", message);
     }
-    
-    
-    
-    
-    
-    
-    
 }

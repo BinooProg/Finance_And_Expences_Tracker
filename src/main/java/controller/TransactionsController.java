@@ -1,6 +1,10 @@
 package controller;
 
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -41,6 +45,9 @@ public class TransactionsController {
     private Button backButton;
 
     @FXML
+    private TextField searchTransactionField;
+
+    @FXML
     private TableView<Transaction> transactionsTable;
 
     @FXML
@@ -50,7 +57,7 @@ public class TransactionsController {
     private TableColumn<Transaction, Integer> userIdColumn;
 
     @FXML
-    private TableColumn<Transaction, Integer> categoryIdColumn;
+    private TableColumn<Transaction, String> categoryIdColumn;
 
     @FXML
     private TableColumn<Transaction, Double> amountColumn;
@@ -66,6 +73,8 @@ public class TransactionsController {
     private final UserService userService = new UserService();
 
     private Transaction selectedTransaction;
+    private final ObservableList<Transaction> transactions = FXCollections.observableArrayList();
+    private FilteredList<Transaction> filteredTransactions;
 
     @FXML
     public void initialize() {
@@ -75,15 +84,18 @@ public class TransactionsController {
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
 
         userIdColumn.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleObjectProperty<>(cellData.getValue().getUser().getId()));
+                new SimpleObjectProperty<>(
+                        cellData.getValue().getUser() == null ? null : cellData.getValue().getUser().getId()));
 
         categoryIdColumn.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleObjectProperty<>(cellData.getValue().getCategory().getId()));
+                new SimpleObjectProperty<>(
+                        cellData.getValue().getCategory() == null ? "" : cellData.getValue().getCategory().getName()));
 
         categoryComboBox.setItems(FXCollections.observableArrayList(categoryService.getAllCategories()));
         configureCategoryComboBoxDisplay();
         typeComboBox.setItems(FXCollections.observableArrayList("Income", "Expense"));
 
+        bindSearch();
         loadTransactions();
 
         transactionsTable.setOnMouseClicked(event -> {
@@ -160,7 +172,40 @@ public class TransactionsController {
     }
 
     private void loadTransactions() {
-        transactionsTable.setItems(FXCollections.observableArrayList(transactionService.getAllTransactions()));
+        transactions.setAll(transactionService.getAllTransactions());
+    }
+
+    private void bindSearch() {
+        filteredTransactions = new FilteredList<>(transactions, transaction -> true);
+        SortedList<Transaction> sortedTransactions = new SortedList<>(filteredTransactions);
+        sortedTransactions.comparatorProperty().bind(transactionsTable.comparatorProperty());
+        transactionsTable.setItems(sortedTransactions);
+
+        if (searchTransactionField != null) {
+            searchTransactionField.textProperty().addListener((observable, oldValue, newValue) ->
+                    applyTransactionFilter(newValue));
+        }
+    }
+
+    private void applyTransactionFilter(String searchText) {
+        String keyword = searchText == null ? "" : searchText.trim().toLowerCase();
+
+        filteredTransactions.setPredicate(transaction -> {
+            if (transaction == null) {
+                return false;
+            }
+
+            if (keyword.isEmpty()) {
+                return true;
+            }
+
+            String categoryName = transaction.getCategory() == null || transaction.getCategory().getName() == null
+                    ? ""
+                    : transaction.getCategory().getName().toLowerCase();
+            String date = transaction.getDate() == null ? "" : transaction.getDate().toLowerCase();
+
+            return categoryName.contains(keyword) || date.contains(keyword);
+        });
     }
 
     private void clearForm() {

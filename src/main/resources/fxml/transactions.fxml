@@ -58,11 +58,16 @@
             </padding>
 
             <children>
+                <TextField fx:id="searchTransactionField"
+                           promptText="Search by category name or date"
+                           styleClass="field-input"
+                           prefWidth="560.0" />
+
                 <TableView fx:id="transactionsTable" prefHeight="330.0" prefWidth="560.0">
                     <columns>
                         <TableColumn fx:id="idColumn" prefWidth="52.0" text="ID" />
                         <TableColumn fx:id="userIdColumn" prefWidth="72.0" text="User ID" />
-                        <TableColumn fx:id="categoryIdColumn" prefWidth="90.0" text="Category ID" />
+                        <TableColumn fx:id="categoryIdColumn" prefWidth="120.0" text="Category" />
                         <TableColumn fx:id="amountColumn" prefWidth="100.0" text="Amount" />
                         <TableColumn fx:id="typeColumn" prefWidth="95.0" text="Type" />
                         <TableColumn fx:id="dateColumn" prefWidth="140.0" text="Date" />
