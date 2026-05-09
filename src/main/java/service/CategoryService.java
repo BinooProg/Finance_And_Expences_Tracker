@@ -10,18 +10,33 @@ import java.util.List;
 import java.util.Locale;
 
 public class CategoryService {
-    private static final String FILE_PATH = "src/main/resources/data/categories.txt";
+    private static final String CATEGORIES_DIRECTORY = "src/main/resources/data/categories";
 
-    List<Category> categories = new ArrayList<Category>();
+    private final List<Category> categories = new ArrayList<>();
+    private Integer loadedUserId;
+    private final UserService userService = new UserService();
 
     public List<Category> getAllCategories() {
-        if( !(categories==null || categories.isEmpty()))
+        Integer currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            categories.clear();
+            loadedUserId = null;
             return categories;
+        }
 
-        Path path = Paths.get(FILE_PATH);
+        if (loadedUserId == null || !loadedUserId.equals(currentUserId)) {
+            categories.clear();
+            loadedUserId = currentUserId;
+        }
+
+        if (!categories.isEmpty()) {
+            return categories;
+        }
+
+        Path path = getUserCategoriesPath(currentUserId);
 
         try {
-            ensureFileExists();
+            ensureFileExists(path);
 
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
             for (String line : lines) {
@@ -51,12 +66,19 @@ public class CategoryService {
             throw new IllegalArgumentException("Category name is required.");
         }
 
+        Integer currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IllegalStateException("No logged-in user found.");
+        }
+
+        getAllCategories();
+
         String trimmedName = name.trim();
         String normalizedInput = normalizeName(trimmedName);
-        // List<Category> categories = getAllCategories();
 
         for (Category c : categories) {
-            if (normalizeName(c.getName()).equals(normalizedInput)) {
+            String normalizedExistingName = normalizeName(c.getName());
+            if (normalizedExistingName.equals(normalizedInput)) {
                 throw new IllegalArgumentException("Category already exists.");
             }
         }
@@ -65,9 +87,10 @@ public class CategoryService {
         String row = nextId + "|" + trimmedName;
 
         try {
-            ensureFileExists();
+            Path path = getUserCategoriesPath(currentUserId);
+            ensureFileExists(path);
             Files.writeString(
-                    Paths.get(FILE_PATH),
+                    path,
                     row + System.lineSeparator(),
                     StandardCharsets.UTF_8,
                     StandardOpenOption.APPEND
@@ -83,13 +106,15 @@ public class CategoryService {
             throw new IllegalArgumentException("Category name is required.");
         }
 
+        getAllCategories();
+
         String trimmedName = newName.trim();
         String normalizedInput = normalizeName(trimmedName);
-        // List<Category> categories = getAllCategories();
         boolean found = false;
 
         for (Category category : categories) {
-            if (category.getId() != id && normalizeName(category.getName()).equals(normalizedInput)) {
+            String normalizedExistingName = normalizeName(category.getName());
+            if (category.getId() != id && normalizedExistingName.equals(normalizedInput)) {
                 throw new IllegalArgumentException("Category already exists.");
             }
         }
@@ -110,7 +135,7 @@ public class CategoryService {
     }
 
     public void deleteCategory(int id) {
-        // List<Category> categories = getAllCategories();
+        getAllCategories();
         boolean removed = categories.removeIf(category -> category.getId() == id);
 
         if (!removed) {
@@ -127,8 +152,12 @@ public class CategoryService {
         }
 
         try {
+            Integer currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                throw new IllegalStateException("No logged-in user found.");
+            }
             Files.write(
-                    Paths.get(FILE_PATH),
+                    getUserCategoriesPath(currentUserId),
                     rows,
                     StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING,
@@ -149,8 +178,21 @@ public class CategoryService {
         return max + 1;
     }
 
-    private void ensureFileExists() throws IOException {
-        Path path = Paths.get(FILE_PATH);
+    private Integer getCurrentUserId() {
+        String email = SessionManager.getLoggedInUserEmail();
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+
+        var user = userService.getUserByEmail(email);
+        return user == null ? null : user.getId();
+    }
+
+    private Path getUserCategoriesPath(int userId) {
+        return Paths.get(CATEGORIES_DIRECTORY, userId + "_categories.txt");
+    }
+
+    private void ensureFileExists(Path path) throws IOException {
         Path parent = path.getParent();
 
         if (parent != null && !Files.exists(parent)) {

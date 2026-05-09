@@ -4,11 +4,9 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -17,7 +15,15 @@ import model.Category;
 import service.CategoryService;
 import util.WindowManager;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
 public class CategoriesController {
+    private static final String SORT_NAME_ASC = "Name (A-Z)";
+    private static final String SORT_NAME_DESC = "Name (Z-A)";
+
 
     private final CategoryService categoryService = new CategoryService();
 
@@ -26,6 +32,9 @@ public class CategoriesController {
 
     @FXML
     private TextField searchCategoryField;
+
+    @FXML
+    private ComboBox<String> sortCategoryComboBox;
 
     @FXML
     private TableView<Category> categoriesTable;
@@ -37,23 +46,11 @@ public class CategoriesController {
     private TableColumn<Category, String> nameColumn;
 
     @FXML
-    private Button addEditCategoryButton;
-
-    @FXML
     private Label messageLabel;
-
-    @FXML
-    private Button clearButton;
-
-    @FXML
-    private Button deleteButton;
-
-    @FXML
-    private Button backButton;
 
     private Category selectedCategory;
     private final ObservableList<Category> categories = FXCollections.observableArrayList();
-    private FilteredList<Category> filteredCategories;
+    private String lastCategoryNotFoundKeyword;
 
     @FXML
     public void initialize() {
@@ -63,7 +60,8 @@ public class CategoriesController {
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));
 
-        bindSearch();
+        configureSort();
+        bindSearchAndSort();
         loadCategories();
 
         categoriesTable.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
@@ -83,6 +81,7 @@ public class CategoriesController {
             if (selectedCategory == null) {
                 categoryService.addCategory(categoryName);
                 showMessage("Category added successfully.");
+                categoryNameField.clear();
             } else {
                 categoryService.updateCategory(selectedCategory.getId(), categoryName);
                 showMessage("Category updated successfully.");
@@ -127,25 +126,53 @@ public class CategoriesController {
         WindowManager.switchToDashboard(event);
     }
 
-    private void bindSearch() {
-        filteredCategories = new FilteredList<>(categories, category -> true);
-        SortedList<Category> sortedCategories = new SortedList<>(filteredCategories);
-        sortedCategories.comparatorProperty().bind(categoriesTable.comparatorProperty());
-        categoriesTable.setItems(sortedCategories);
-
+    private void bindSearchAndSort() {
         searchCategoryField.textProperty().addListener((observable, oldValue, newValue) ->
-                applyCategoryFilter(newValue));
+                refreshCategoriesView());
+
+        sortCategoryComboBox.valueProperty().addListener((observable, oldValue, newValue) ->
+                refreshCategoriesView());
     }
 
-    private void applyCategoryFilter(String searchText) {
-        String keyword = searchText == null ? "" : searchText.trim().toLowerCase();
+    private void configureSort() {
+        sortCategoryComboBox.setItems(FXCollections.observableArrayList(SORT_NAME_ASC, SORT_NAME_DESC));
+        sortCategoryComboBox.setValue(SORT_NAME_ASC);
+    }
 
-        filteredCategories.setPredicate(category ->
-                keyword.isEmpty() || category.getName().toLowerCase().contains(keyword));
+    private void refreshCategoriesView() {
+        String keyword = searchCategoryField.getText() == null
+                ? ""
+                : searchCategoryField.getText().trim().toLowerCase(Locale.ROOT);
+
+        Comparator<Category> comparator = Comparator.comparing(
+                c -> c.getName().toLowerCase(Locale.ROOT)
+        );
+        if (SORT_NAME_DESC.equals(sortCategoryComboBox.getValue())) {
+            comparator = comparator.reversed();
+        }
+
+        List<Category> viewData = categories.stream()
+                .filter(category -> keyword.isEmpty()
+                        || category.getName().toLowerCase(Locale.ROOT).contains(keyword))
+                .sorted(comparator)
+                .collect(Collectors.toList());
+
+        categoriesTable.setItems(FXCollections.observableArrayList(viewData));
+
+        if (keyword.isEmpty() || !viewData.isEmpty()) {
+            lastCategoryNotFoundKeyword = null;
+            return;
+        }
+
+        if (!keyword.equals(lastCategoryNotFoundKeyword)) {
+            lastCategoryNotFoundKeyword = keyword;
+            WindowManager.showErrorAlert("Category Not Found", "No category found with that name.");
+        }
     }
 
     private void loadCategories() {
         categories.setAll(categoryService.getAllCategories());
+        refreshCategoriesView();
     }
 
     private void clearForm() {

@@ -11,17 +11,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TransactionService {
-    private static final String FILE_PATH = "src/main/resources/data/transactions.txt";
+    private static final String TRANSACTIONS_DIRECTORY = "src/main/resources/data/transactions";
 
+    private final List<Transaction> transactions = new ArrayList<>();
+    private Integer loadedUserId;
     private final UserService userService = new UserService();
     private final CategoryService categoryService = new CategoryService();
 
     public List<Transaction> getAllTransactions() {
-        List<Transaction> transactions = new ArrayList<>();
-        Path path = Paths.get(FILE_PATH);
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            transactions.clear();
+            loadedUserId = null;
+            return transactions;
+        }
+
+        if (loadedUserId == null || !loadedUserId.equals(currentUser.getId())) {
+            transactions.clear();
+            loadedUserId = currentUser.getId();
+        }
+
+        if (!transactions.isEmpty()) {
+            return transactions;
+        }
+
+        Path path = getUserTransactionsPath(currentUser.getId());
 
         try {
-            ensureFileExists();
+            ensureFileExists(path);
 
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
             List<Category> categories = categoryService.getAllCategories();
@@ -33,24 +50,24 @@ public class TransactionService {
 
                 try {
                     String[] parts = line.split("\\|");
-                    if (parts.length < 6) {
+                    if (parts.length < 5) {
                         continue;
                     }
 
                     int id = Integer.parseInt(parts[0].trim());
-                    int userId = Integer.parseInt(parts[1].trim());
-                    int categoryId = Integer.parseInt(parts[2].trim());
-                    double amount = Double.parseDouble(parts[3].trim());
-                    String type = parts[4].trim();
-                    String date = parts[5].trim();
+                    int categoryId = Integer.parseInt(parts[1].trim());
+                    double amount = Double.parseDouble(parts[2].trim());
+                    String type = parts[3].trim();
+                    String date = parts[4].trim();
 
-                    User user = getUserById(userId);
+                    User user = currentUser;
                     Category category = getCategoryById(categoryId, categories);
 
                     if (user != null && category != null) {
                         transactions.add(new Transaction(id, user, category, amount, type, date));
                     }
                 } catch (NumberFormatException ex) {
+                    // Skip malformed row
                 }
             }
         } catch (IOException e) {
@@ -65,20 +82,23 @@ public class TransactionService {
 
         int nextId = getNextId();
         String row = nextId + "|" +
-                user.getId() + "|" +
                 category.getId() + "|" +
                 amount + "|" +
                 type.trim() + "|" +
                 date.trim();
 
         try {
-            ensureFileExists();
+            Path path = getUserTransactionsPath(user.getId());
+            ensureFileExists(path);
             Files.writeString(
-                    Paths.get(FILE_PATH),
+                    path,
                     row + System.lineSeparator(),
                     StandardCharsets.UTF_8,
                     StandardOpenOption.APPEND
             );
+            if (loadedUserId != null && loadedUserId.equals(user.getId())) {
+                transactions.add(new Transaction(nextId, user, category, amount, type.trim(), date.trim()));
+            }
         } catch (IOException e) {
             throw new RuntimeException("Failed to save transaction.", e);
         }
@@ -157,7 +177,6 @@ public class TransactionService {
         for (Transaction t : transactions) {
             rows.add(
                     t.getId() + "|" +
-                            t.getUser().getId() + "|" +
                             t.getCategory().getId() + "|" +
                             t.getAmount() + "|" +
                             t.getType() + "|" +
@@ -166,8 +185,12 @@ public class TransactionService {
         }
 
         try {
+            User currentUser = getCurrentUser();
+            if (currentUser == null) {
+                throw new IllegalStateException("No logged-in user found.");
+            }
             Files.write(
-                    Paths.get(FILE_PATH),
+                    getUserTransactionsPath(currentUser.getId()),
                     rows,
                     StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING,
@@ -190,22 +213,6 @@ public class TransactionService {
         return max + 1;
     }
 
-    private User getUserById(int userId) {
-        String email = SessionManager.getLoggedInUserEmail();
-
-        if (email == null || email.trim().isEmpty()) {
-            return null;
-        }
-
-        User currentUser = userService.getUserByEmail(email);
-
-        if (currentUser != null && currentUser.getId() == userId) {
-            return currentUser;
-        }
-
-        return null;
-    }
-
     private Category getCategoryById(int categoryId, List<Category> categories) {
         for (Category c : categories) {
             if (c.getId() == categoryId) {
@@ -215,8 +222,21 @@ public class TransactionService {
         return null;
     }
 
-    private void ensureFileExists() throws IOException {
-        Path path = Paths.get(FILE_PATH);
+    private User getCurrentUser() {
+        String email = SessionManager.getLoggedInUserEmail();
+
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+
+        return userService.getUserByEmail(email);
+    }
+
+    private Path getUserTransactionsPath(int userId) {
+        return Paths.get(TRANSACTIONS_DIRECTORY, userId + "_transactions.txt");
+    }
+
+    private void ensureFileExists(Path path) throws IOException {
         Path parent = path.getParent();
 
         if (parent != null && !Files.exists(parent)) {

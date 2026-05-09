@@ -164,9 +164,13 @@
 }
 
 .table-view .column-header .label {
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
     -fx-font-weight: 700;
     -fx-text-fill: #102a43;
+}
+
+.table-view .table-cell {
+    -fx-font-size: 14px;
 }
 
 .table-row-cell {

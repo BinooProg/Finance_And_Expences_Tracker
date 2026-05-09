@@ -1,7 +1,6 @@
 package controller;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.event.ActionEvent;
 import service.TransactionService;
@@ -19,9 +18,6 @@ public class ReportsController {
 
     @FXML
     private Label balanceValueLabel;
-
-    @FXML
-    private Button backButton;
 
     private final TransactionService transactionService = new TransactionService();
 

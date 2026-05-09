@@ -2,8 +2,6 @@ package controller;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -20,8 +18,16 @@ import service.UserService;
 import util.WindowManager;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class TransactionsController {
+    private static final String SORT_DATE_NEWEST = "Date (Newest)";
+    private static final String SORT_DATE_OLDEST = "Date (Oldest)";
+    private static final String SORT_AMOUNT_LOW_HIGH = "Amount (Low-High)";
+    private static final String SORT_AMOUNT_HIGH_LOW = "Amount (High-Low)";
 
     @FXML
     private TextField amountField;
@@ -36,16 +42,10 @@ public class TransactionsController {
     private DatePicker transactionDatePicker;
 
     @FXML
-    private Button addEditTransactionButton;
-
-    @FXML
-    private Button clearButton;
-
-    @FXML
-    private Button backButton;
-
-    @FXML
     private TextField searchTransactionField;
+
+    @FXML
+    private ComboBox<String> sortTransactionComboBox;
 
     @FXML
     private TableView<Transaction> transactionsTable;
@@ -54,10 +54,7 @@ public class TransactionsController {
     private TableColumn<Transaction, Integer> idColumn;
 
     @FXML
-    private TableColumn<Transaction, Integer> userIdColumn;
-
-    @FXML
-    private TableColumn<Transaction, String> categoryIdColumn;
+    private TableColumn<Transaction, String> categoryNameColumn;
 
     @FXML
     private TableColumn<Transaction, Double> amountColumn;
@@ -74,7 +71,7 @@ public class TransactionsController {
 
     private Transaction selectedTransaction;
     private final ObservableList<Transaction> transactions = FXCollections.observableArrayList();
-    private FilteredList<Transaction> filteredTransactions;
+    private String lastSearchNotFoundKeyword;
 
     @FXML
     public void initialize() {
@@ -83,11 +80,7 @@ public class TransactionsController {
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
 
-        userIdColumn.setCellValueFactory(cellData ->
-                new SimpleObjectProperty<>(
-                        cellData.getValue().getUser() == null ? null : cellData.getValue().getUser().getId()));
-
-        categoryIdColumn.setCellValueFactory(cellData ->
+        categoryNameColumn.setCellValueFactory(cellData ->
                 new SimpleObjectProperty<>(
                         cellData.getValue().getCategory() == null ? "" : cellData.getValue().getCategory().getName()));
 
@@ -95,7 +88,8 @@ public class TransactionsController {
         configureCategoryComboBoxDisplay();
         typeComboBox.setItems(FXCollections.observableArrayList("Income", "Expense"));
 
-        bindSearch();
+        configureSort();
+        bindSearchAndSort();
         loadTransactions();
 
         transactionsTable.setOnMouseClicked(event -> {
@@ -173,36 +167,104 @@ public class TransactionsController {
 
     private void loadTransactions() {
         transactions.setAll(transactionService.getAllTransactions());
+        refreshTransactionsView();
     }
 
-    private void bindSearch() {
-        filteredTransactions = new FilteredList<>(transactions, transaction -> true);
-        SortedList<Transaction> sortedTransactions = new SortedList<>(filteredTransactions);
-        sortedTransactions.comparatorProperty().bind(transactionsTable.comparatorProperty());
-        transactionsTable.setItems(sortedTransactions);
-
+    private void bindSearchAndSort() {
         if (searchTransactionField != null) {
             searchTransactionField.textProperty().addListener((observable, oldValue, newValue) ->
-                    applyTransactionFilter(newValue));
+                    refreshTransactionsView());
+        }
+
+        sortTransactionComboBox.valueProperty().addListener((observable, oldValue, newValue) ->
+                refreshTransactionsView());
+    }
+
+    private void configureSort() {
+        sortTransactionComboBox.setItems(FXCollections.observableArrayList(
+                SORT_DATE_NEWEST,
+                SORT_DATE_OLDEST,
+                SORT_AMOUNT_LOW_HIGH,
+                SORT_AMOUNT_HIGH_LOW
+        ));
+        sortTransactionComboBox.setValue(SORT_DATE_NEWEST);
+    }
+
+    private void refreshTransactionsView() {
+        String keyword = searchTransactionField.getText() == null
+                ? ""
+                : searchTransactionField.getText().trim().toLowerCase(Locale.ROOT);
+
+        Comparator<Transaction> comparator = buildTransactionComparator(sortTransactionComboBox.getValue());
+        boolean categoryOrDateMatchExists = hasCategoryOrDateMatch(keyword);
+
+        List<Transaction> viewData = transactions.stream()
+                .filter(transaction -> matchesTransactionKeyword(transaction, keyword))
+                .sorted(comparator)
+                .collect(Collectors.toList());
+
+        transactionsTable.setItems(FXCollections.observableArrayList(viewData));
+
+        if (keyword.isEmpty() || categoryOrDateMatchExists) {
+            lastSearchNotFoundKeyword = null;
+            return;
+        }
+
+        if (!keyword.equals(lastSearchNotFoundKeyword)) {
+            lastSearchNotFoundKeyword = keyword;
+            WindowManager.showErrorAlert("Search Not Found", "No transaction category or date found for that search.");
         }
     }
 
-    private void applyTransactionFilter(String searchText) {
-        String keyword = searchText == null ? "" : searchText.trim().toLowerCase();
+    private Comparator<Transaction> buildTransactionComparator(String sortOption) {
+        if (SORT_DATE_OLDEST.equals(sortOption)) {
+            return Comparator.comparing(t -> LocalDate.parse(t.getDate()));
+        }
 
-        filteredTransactions.setPredicate(transaction -> {
-            if (transaction == null) {
-                return false;
+        if (SORT_AMOUNT_LOW_HIGH.equals(sortOption)) {
+            return Comparator.comparingDouble(Transaction::getAmount);
+        }
+
+        if (SORT_AMOUNT_HIGH_LOW.equals(sortOption)) {
+            return Comparator.comparingDouble(Transaction::getAmount).reversed();
+        }
+
+        return Comparator.comparing((Transaction t) -> LocalDate.parse(t.getDate())).reversed();
+    }
+
+    private boolean matchesTransactionKeyword(Transaction transaction, String keyword) {
+        if (transaction == null) {
+            return false;
+        }
+        if (keyword.isEmpty()) {
+            return true;
+        }
+
+        String categoryName = transaction.getCategory() == null || transaction.getCategory().getName() == null
+                ? ""
+                : transaction.getCategory().getName().toLowerCase(Locale.ROOT);
+        String date = transaction.getDate() == null ? "" : transaction.getDate().toLowerCase(Locale.ROOT);
+
+        return categoryName.contains(keyword) || date.contains(keyword);
+    }
+
+    private boolean hasCategoryOrDateMatch(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+
+        return transactions.stream().anyMatch(transaction -> {
+            if (transaction == null || transaction.getCategory() == null || transaction.getCategory().getName() == null) {
+                String date = transaction == null || transaction.getDate() == null
+                        ? ""
+                        : transaction.getDate().toLowerCase(Locale.ROOT);
+                return date.contains(keyword);
             }
 
-            if (keyword.isEmpty()) {
-                return true;
-            }
-
-            String categoryName = transaction.getCategory() == null || transaction.getCategory().getName() == null
+            String categoryName = transaction.getCategory().getName().toLowerCase(Locale.ROOT);
+            String date = transaction.getDate() == null
                     ? ""
-                    : transaction.getCategory().getName().toLowerCase();
-            String date = transaction.getDate() == null ? "" : transaction.getDate().toLowerCase();
+                    : transaction.getDate().toLowerCase(Locale.ROOT);
 
             return categoryName.contains(keyword) || date.contains(keyword);
         });

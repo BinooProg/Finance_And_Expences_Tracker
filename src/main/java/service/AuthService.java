@@ -13,6 +13,8 @@ import util.HashUtil;
 
 public class AuthService {
     private static final String FILE_PATH = "src/main/resources/data/users.txt";
+    private static final String DEFAULT_CATEGORIES_FILE_PATH = "src/main/resources/data/categories.txt";
+    private static final String USER_CATEGORIES_DIRECTORY = "src/main/resources/data/categories";
 
     /**
      * Registers a new user by validating input, checking email uniqueness, hashing the password,
@@ -42,6 +44,7 @@ public class AuthService {
             ensureFileExists();
             Files.writeString(getFilePath(), row + System.lineSeparator(), StandardCharsets.UTF_8,
                     java.nio.file.StandardOpenOption.APPEND);
+            initializeUserCategoriesFile(nextId);
             return true;
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to persist user data", e);
@@ -172,6 +175,28 @@ public class AuthService {
      */
     private Path getFilePath() {
         return Paths.get(FILE_PATH);
+    }
+
+    private void initializeUserCategoriesFile(int userId) throws IOException {
+        Path categoriesDir = Paths.get(USER_CATEGORIES_DIRECTORY);
+        if (!Files.exists(categoriesDir)) {
+            Files.createDirectories(categoriesDir);
+        }
+
+        Path userCategoriesPath = categoriesDir.resolve(userId + "_categories.txt");
+        if (Files.exists(userCategoriesPath)) {
+            return;
+        }
+
+        Path DefaultCategoriesPath = Paths.get(DEFAULT_CATEGORIES_FILE_PATH);
+        if (!Files.exists(DefaultCategoriesPath)) {
+            Files.createFile(userCategoriesPath);
+            return;
+        }
+
+        List<String> defaultCategories = Files.readAllLines(DefaultCategoriesPath, StandardCharsets.UTF_8);
+        Files.write(userCategoriesPath, defaultCategories, StandardCharsets.UTF_8,
+                java.nio.file.StandardOpenOption.CREATE_NEW);
     }
 
     /**

@@ -10,6 +10,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane prefHeight="500.0" prefWidth="860.0" stylesheets="@../css/app.css"  xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.TransactionsController">
@@ -58,19 +59,27 @@
             </padding>
 
             <children>
-                <TextField fx:id="searchTransactionField"
-                           promptText="Search by category name or date"
-                           styleClass="field-input"
-                           prefWidth="560.0" />
+                <HBox alignment="CENTER_LEFT" spacing="10.0" prefWidth="560.0">
+                    <children>
+                        <TextField fx:id="searchTransactionField"
+                                   promptText="Search by category name or date"
+                                   styleClass="field-input"
+                                   HBox.hgrow="ALWAYS" />
+
+                        <ComboBox fx:id="sortTransactionComboBox"
+                                  prefWidth="155.0"
+                                  promptText="Sort"
+                                  styleClass="field-input" />
+                    </children>
+                </HBox>
 
                 <TableView fx:id="transactionsTable" prefHeight="330.0" prefWidth="560.0">
                     <columns>
                         <TableColumn fx:id="idColumn" prefWidth="52.0" text="ID" />
-                        <TableColumn fx:id="userIdColumn" prefWidth="72.0" text="User ID" />
-                        <TableColumn fx:id="categoryIdColumn" prefWidth="120.0" text="Category" />
+                        <TableColumn fx:id="categoryNameColumn" prefWidth="160.0" text="Category Name" />
                         <TableColumn fx:id="amountColumn" prefWidth="100.0" text="Amount" />
                         <TableColumn fx:id="typeColumn" prefWidth="95.0" text="Type" />
-                        <TableColumn fx:id="dateColumn" prefWidth="140.0" text="Date" />
+                        <TableColumn fx:id="dateColumn" prefWidth="170.0" text="Date" />
                     </columns>
                 </TableView>
             </children>
