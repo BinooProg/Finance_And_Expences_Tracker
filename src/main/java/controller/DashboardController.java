@@ -6,13 +6,16 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import model.User;
 import service.SessionManager;
 import service.UserService;
 import util.WindowManager;
 
 public class DashboardController {
+    private static final String DEFAULT_WELCOME_TEXT = "Welcome to Dashboard!";
+    private static final String REPORTS_FXML = "/fxml/reports.fxml";
+    private static final String CATEGORIES_FXML = "/fxml/categories.fxml";
+    private static final String TRANSACTIONS_FXML = "/fxml/transactions.fxml";
 
     @FXML
     private Label welcomeLabel;
@@ -20,16 +23,12 @@ public class DashboardController {
     @FXML
     private StackPane contentArea;
 
-    @FXML
-    private VBox homeContent;
-
     private String userEmail;
     private final UserService userService = new UserService();
 
     @FXML
     public void initialize() {
-        welcomeLabel.setText("Welcome to Dashboard!");
-        showHomeContent();
+        loadContent(REPORTS_FXML);
     }
 
     public void setUserEmail(String email) {
@@ -38,44 +37,35 @@ public class DashboardController {
     }
 
     private void updateWelcomeLabel() {
-        if (userEmail != null && !userEmail.isEmpty()) {
-            User user = userService.getUserByEmail(userEmail);
-
-            if (user != null && user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) {
-                welcomeLabel.setText("Welcome, " + user.getFirstName().trim() + "!");
-            } else {
-                welcomeLabel.setText("Welcome to Dashboard!");
-            }
-        } else {
-            welcomeLabel.setText("Welcome to Dashboard!");
+        if (userEmail == null || userEmail.isBlank()) {
+            welcomeLabel.setText(DEFAULT_WELCOME_TEXT);
+            return;
         }
+
+        User user = userService.getUserByEmail(userEmail);
+        String firstName = user == null || user.getFirstName() == null ? "" : user.getFirstName().trim();
+        welcomeLabel.setText(firstName.isEmpty() ? DEFAULT_WELCOME_TEXT : "Welcome, " + firstName + "!");
     }
 
     @FXML
     protected void onCategoriesButtonClick(ActionEvent event) {
-        loadContent("/fxml/categories.fxml");
+        loadContent(CATEGORIES_FXML);
     }
 
     @FXML
     protected void onTransactionsButtonClick(ActionEvent event) {
-        loadContent("/fxml/transactions.fxml");
+        loadContent(TRANSACTIONS_FXML);
     }
 
     @FXML
     protected void onReportsButtonClick(ActionEvent event) {
-        loadContent("/fxml/reports.fxml");
+        loadContent(REPORTS_FXML);
     }
 
     @FXML
     protected void onLogoutButtonClick(ActionEvent event) {
         SessionManager.clearSession();
         WindowManager.switchToLogin(event);
-    }
-
-    private void showHomeContent() {
-        if (contentArea != null && homeContent != null) {
-            contentArea.getChildren().setAll(homeContent);
-        }
     }
 
     private void loadContent(String fxmlPath) {

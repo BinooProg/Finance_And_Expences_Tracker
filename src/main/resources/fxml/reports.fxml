@@ -1,50 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" prefHeight="380.0" prefWidth="420.0" spacing="16.0" styleClass="report-root" stylesheets="@../css/app.css"  xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ReportsController">
+<VBox alignment="TOP_LEFT" fillWidth="true" prefHeight="620.0" prefWidth="980.0" spacing="16.0" styleClass="report-root" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ReportsController">
 
     <padding>
-        <Insets bottom="20" left="20" right="20" top="20" />
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
 
     <children>
 
-        <Label styleClass="compact-page-title" text="Financial Report" />
-
-        <VBox alignment="CENTER_LEFT" spacing="12.0" maxWidth="350.0" styleClass="content-card report-card">
-            <padding>
-                <Insets bottom="20.0" left="18.0" right="18.0" top="20.0" />
-            </padding>
+        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="report-header-row">
             <children>
-                <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="metric-card">
+                <VBox spacing="2.0">
+                    <children>
+                        <Label styleClass="compact-page-title" text="Financial Report" />
+                        <Label styleClass="sub-heading" text="Live summary by total values and category performance." />
+                    </children>
+                </VBox>
+                <Pane HBox.hgrow="ALWAYS" />
+            </children>
+        </HBox>
+
+        <HBox alignment="CENTER" spacing="14.0">
+            <children>
+                <VBox alignment="CENTER_LEFT" maxWidth="Infinity" prefHeight="92.0" prefWidth="280.0" spacing="6.0" styleClass="metric-card report-metric-card" HBox.hgrow="ALWAYS">
                     <children>
                         <Label styleClass="metric-title" text="Total Income" />
                         <Label fx:id="totalIncomeValueLabel" styleClass="metric-value" text="0.00" />
                     </children>
-                </HBox>
+                </VBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="metric-card">
+                <VBox alignment="CENTER_LEFT" maxWidth="Infinity" prefHeight="92.0" prefWidth="280.0" spacing="6.0" styleClass="metric-card report-metric-card" HBox.hgrow="ALWAYS">
                     <children>
                         <Label styleClass="metric-title" text="Total Expenses" />
                         <Label fx:id="totalExpensesValueLabel" styleClass="metric-value" text="0.00" />
                     </children>
-                </HBox>
+                </VBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="metric-card">
+                <VBox alignment="CENTER_LEFT" maxWidth="Infinity" prefHeight="92.0" prefWidth="280.0" spacing="6.0" styleClass="metric-card report-metric-card" HBox.hgrow="ALWAYS">
                     <children>
                         <Label styleClass="metric-title" text="Balance" />
                         <Label fx:id="balanceValueLabel" styleClass="metric-value report-balance" text="0.00" />
                     </children>
+                </VBox>
+            </children>
+        </HBox>
+
+        <VBox alignment="TOP_LEFT" maxWidth="Infinity" spacing="10.0" styleClass="content-card report-card report-table-panel" VBox.vgrow="ALWAYS">
+            <padding>
+                <Insets bottom="14.0" left="14.0" right="14.0" top="14.0" />
+            </padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <children>
+                        <Label styleClass="metric-title" text="Category Breakdown" />
+                        <Pane HBox.hgrow="ALWAYS" />
+                        <Label styleClass="metric-title" text="Sort By" />
+                        <ComboBox fx:id="sortSummaryComboBox" prefWidth="170.0" styleClass="report-sort-box" />
+                    </children>
                 </HBox>
+                <TableView fx:id="categorySummaryTable" maxHeight="Infinity" maxWidth="Infinity" prefHeight="420.0" prefWidth="920.0" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="categoryColumn" prefWidth="400.0" text="Category" />
+                        <TableColumn fx:id="categoryIncomeColumn" prefWidth="170.0" text="Income" />
+                        <TableColumn fx:id="categoryExpenseColumn" prefWidth="170.0" text="Expenses" />
+                        <TableColumn fx:id="categoryNetColumn" prefWidth="170.0" text="Net" />
+                    </columns>
+                </TableView>
             </children>
         </VBox>
-
-        <Button fx:id="backButton" onAction="#onBackButtonClick" prefWidth="120" styleClass="secondary-button compact-button" text="Back" />
 
     </children>
 

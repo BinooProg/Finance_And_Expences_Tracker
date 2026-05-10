@@ -228,9 +228,30 @@
     -fx-background-color: linear-gradient(to bottom right, #eef8fc, #e3f1f8);
 }
 
+.report-header-row {
+    -fx-padding: 2 2 6 2;
+}
+
 .report-card {
     -fx-border-color: #c7dce8;
     -fx-effect: dropshadow(gaussian, rgba(11, 48, 71, 0.18), 18, 0.12, 0, 6);
+}
+
+.report-metric-card {
+    -fx-padding: 12 14;
+}
+
+.report-table-panel {
+    -fx-padding: 2;
+}
+
+.report-sort-box {
+    -fx-font-size: 13px;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #bcccdc;
+    -fx-border-radius: 8;
+    -fx-padding: 4 8;
 }
 
 .metric-card {
