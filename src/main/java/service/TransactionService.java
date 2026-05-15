@@ -3,75 +3,74 @@ package service;
 import model.Category;
 import model.Transaction;
 import model.User;
+import util.DatabaseConnection;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TransactionService {
-    private static final String TRANSACTIONS_DIRECTORY = "src/main/resources/data/transactions";
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private Integer loadedUserId;
+    private final Connection con;
     private final UserService userService = new UserService();
-    private final CategoryService categoryService = new CategoryService();
+
+    public TransactionService() {
+        this.con = DatabaseConnection.getDatabaseConnection().getConnection();
+    }
 
     public List<Transaction> getAllTransactions() {
+        List<Transaction> transactions = new ArrayList<>();
         User currentUser = getCurrentUser();
+
         if (currentUser == null) {
-            transactions.clear();
-            loadedUserId = null;
             return transactions;
         }
 
-        if (loadedUserId == null || !loadedUserId.equals(currentUser.getId())) {
-            transactions.clear();
-            loadedUserId = currentUser.getId();
-        }
-
-        if (!transactions.isEmpty()) {
-            return transactions;
-        }
-
-        Path path = getUserTransactionsPath(currentUser.getId());
+        String sql = """
+                SELECT 
+                    t.id,
+                    t.amount,
+                    t.type,
+                    t.date,
+                    c.id AS category_id,
+                    c.name AS category_name
+                FROM Transactions t
+                JOIN Categories c ON t.category_id = c.id
+                WHERE t.user_id = ?
+                ORDER BY t.date DESC, t.id DESC
+                """;
 
         try {
-            ensureFileExists(path);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, currentUser.getId());
 
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            List<Category> categories = categoryService.getAllCategories();
+            ResultSet rs = ps.executeQuery();
 
-            for (String line : lines) {
-                if (line == null || line.isBlank()) {
-                    continue;
-                }
+            while (rs.next()) {
+                Category category = new Category(
+                        rs.getInt("category_id"),
+                        rs.getString("category_name")
+                );
 
-                try {
-                    String[] parts = line.split("\\|");
-                    if (parts.length < 5) {
-                        continue;
-                    }
+                Transaction transaction = new Transaction(
+                        rs.getInt("id"),
+                        currentUser,
+                        category,
+                        rs.getDouble("amount"),
+                        rs.getString("type"),
+                        rs.getDate("date").toString()
+                );
 
-                    int id = Integer.parseInt(parts[0].trim());
-                    int categoryId = Integer.parseInt(parts[1].trim());
-                    double amount = Double.parseDouble(parts[2].trim());
-                    String type = parts[3].trim();
-                    String date = parts[4].trim();
-
-                    User user = currentUser;
-                    Category category = getCategoryById(categoryId, categories);
-
-                    if (user != null && category != null) {
-                        transactions.add(new Transaction(id, user, category, amount, type, date));
-                    }
-                } catch (NumberFormatException ex) {
-                    // Skip malformed row
-                }
+                transactions.add(transaction);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load transactions from database.", e);
         }
 
         return transactions;
@@ -80,77 +79,94 @@ public class TransactionService {
     public void addTransaction(User user, Category category, double amount, String type, String date) {
         validateTransactionData(user, category, amount, type, date);
 
-        int nextId = getNextId();
-        String row = nextId + "|" +
-                category.getId() + "|" +
-                amount + "|" +
-                type.trim() + "|" +
-                date.trim();
+        String sql = """
+                INSERT INTO Transactions (user_id, category_id, amount, type, date)
+                VALUES (?, ?, ?, ?, ?)
+                """;
 
         try {
-            Path path = getUserTransactionsPath(user.getId());
-            ensureFileExists(path);
-            Files.writeString(
-                    path,
-                    row + System.lineSeparator(),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.APPEND
-            );
-            if (loadedUserId != null && loadedUserId.equals(user.getId())) {
-                transactions.add(new Transaction(nextId, user, category, amount, type.trim(), date.trim()));
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save transaction.", e);
+            PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setInt(1, user.getId());
+            ps.setInt(2, category.getId());
+            ps.setDouble(3, amount);
+            ps.setString(4, normalizeType(type));
+            ps.setDate(5, Date.valueOf(LocalDate.parse(date.trim())));
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to save transaction in database.", e);
         }
     }
 
     public void updateTransaction(int id, User user, Category category, double amount, String type, String date) {
         validateTransactionData(user, category, amount, type, date);
 
-        List<Transaction> transactions = getAllTransactions();
-        boolean found = false;
+        String sql = """
+                UPDATE Transactions
+                SET category_id = ?, amount = ?, type = ?, date = ?
+                WHERE id = ? AND user_id = ?
+                """;
 
-        for (Transaction t : transactions) {
-            if (t.getId() == id) {
-                t.setUser(user);
-                t.setCategory(category);
-                t.setAmount(amount);
-                t.setType(type.trim());
-                t.setDate(date.trim());
-                found = true;
-                break;
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setInt(1, category.getId());
+            ps.setDouble(2, amount);
+            ps.setString(3, normalizeType(type));
+            ps.setDate(4, Date.valueOf(LocalDate.parse(date.trim())));
+            ps.setInt(5, id);
+            ps.setInt(6, user.getId());
+
+            int rows = ps.executeUpdate();
+
+            if (rows == 0) {
+                throw new IllegalArgumentException("Transaction not found.");
             }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update transaction in database.", e);
+        }
+    }
+
+    public void deleteTransaction(int id) {
+        User currentUser = getCurrentUser();
+
+        if (currentUser == null) {
+            throw new IllegalStateException("No logged-in user found.");
         }
 
-        if (!found) {
-            throw new IllegalArgumentException("Transaction not found.");
-        }
+        String sql = "DELETE FROM Transactions WHERE id = ? AND user_id = ?";
 
-        rewriteAll(transactions);
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, id);
+            ps.setInt(2, currentUser.getId());
+
+            int rows = ps.executeUpdate();
+
+            if (rows == 0) {
+                throw new IllegalArgumentException("Transaction not found.");
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete transaction from database.", e);
+        }
     }
 
     public double getTotalIncome() {
-        double sum = 0;
-
-        for (Transaction t : getAllTransactions()) {
-            if ("Income".equalsIgnoreCase(t.getType())) {
-                sum += t.getAmount();
-            }
-        }
-
-        return sum;
+        return getAllTransactions().stream()
+                .filter(t -> "Income".equalsIgnoreCase(t.getType()))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
     }
 
     public double getTotalExpenses() {
-        double sum = 0;
-
-        for (Transaction t : getAllTransactions()) {
-            if ("Expense".equalsIgnoreCase(t.getType())) {
-                sum += t.getAmount();
-            }
-        }
-
-        return sum;
+        return getAllTransactions().stream()
+                .filter(t -> "Expense".equalsIgnoreCase(t.getType()))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
     }
 
     private void validateTransactionData(User user, Category category, double amount, String type, String date) {
@@ -169,57 +185,16 @@ public class TransactionService {
         if (!type.equalsIgnoreCase("Income") && !type.equalsIgnoreCase("Expense")) {
             throw new IllegalArgumentException("Type must be either Income or Expense.");
         }
-    }
-
-    private void rewriteAll(List<Transaction> transactions) {
-        List<String> rows = new ArrayList<>();
-
-        for (Transaction t : transactions) {
-            rows.add(
-                    t.getId() + "|" +
-                            t.getCategory().getId() + "|" +
-                            t.getAmount() + "|" +
-                            t.getType() + "|" +
-                            t.getDate()
-            );
-        }
 
         try {
-            User currentUser = getCurrentUser();
-            if (currentUser == null) {
-                throw new IllegalStateException("No logged-in user found.");
-            }
-            Files.write(
-                    getUserTransactionsPath(currentUser.getId()),
-                    rows,
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.CREATE
-            );
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to update transactions.", e);
+            LocalDate.parse(date.trim());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid transaction date.");
         }
     }
 
-    private int getNextId() {
-        int max = 0;
-
-        for (Transaction t : getAllTransactions()) {
-            if (t.getId() > max) {
-                max = t.getId();
-            }
-        }
-
-        return max + 1;
-    }
-
-    private Category getCategoryById(int categoryId, List<Category> categories) {
-        for (Category c : categories) {
-            if (c.getId() == categoryId) {
-                return c;
-            }
-        }
-        return null;
+    private String normalizeType(String type) {
+        return type.trim().equalsIgnoreCase("Income") ? "Income" : "Expense";
     }
 
     private User getCurrentUser() {
@@ -230,21 +205,5 @@ public class TransactionService {
         }
 
         return userService.getUserByEmail(email);
-    }
-
-    private Path getUserTransactionsPath(int userId) {
-        return Paths.get(TRANSACTIONS_DIRECTORY, userId + "_transactions.txt");
-    }
-
-    private void ensureFileExists(Path path) throws IOException {
-        Path parent = path.getParent();
-
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
-
-        if (!Files.exists(path)) {
-            Files.createFile(path);
-        }
     }
 }

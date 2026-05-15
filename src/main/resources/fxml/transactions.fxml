@@ -10,10 +10,9 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="500.0" prefWidth="860.0" stylesheets="@../css/app.css"  xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.TransactionsController">
+<BorderPane prefHeight="500.0" prefWidth="860.0" stylesheets="@../css/app.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.TransactionsController">
 
     <top>
         <Label styleClass="compact-page-title" text="Transactions Management" BorderPane.alignment="CENTER">
@@ -41,13 +40,18 @@
                 <HBox alignment="CENTER" spacing="8.0">
                     <children>
                         <DatePicker fx:id="transactionDatePicker" prefWidth="132.0" styleClass="field-input" />
-                        <Button fx:id="todayButton" onAction="#onTodayButtonClick" prefWidth="72.0" prefHeight="34.0" styleClass="today-button" text="Today" />
+                        <Button fx:id="todayButton" onAction="#onTodayButtonClick" prefHeight="34.0" prefWidth="72.0" styleClass="today-button" text="Today" />
                     </children>
                 </HBox>
 
                 <Button fx:id="addEditTransactionButton" onAction="#onAddEditTransactionButtonClick" prefWidth="180.0" styleClass="primary-button compact-button" text="Add / Edit Transaction" />
-
-                <Button fx:id="clearButton" onAction="#onClearButtonClick" prefWidth="180.0" styleClass="secondary-button compact-button" text="Clear" />
+            <HBox alignment="CENTER" prefHeight="47.0" prefWidth="223.0" spacing="20.0">
+               <children>
+      
+                      <Button fx:id="clearButton" onAction="#onClearButtonClick" prefHeight="43.0" prefWidth="100.0" styleClass="secondary-button compact-button" text="Clear" />
+                  <Button fx:id="deleteButton" mnemonicParsing="false" onAction="#onDeleteTransactionButtonClick" prefHeight="43.0" prefWidth="100.0" text="Delete" />
+               </children>
+            </HBox>
             </children>
         </VBox>
     </left>
@@ -59,17 +63,11 @@
             </padding>
 
             <children>
-                <HBox alignment="CENTER_LEFT" spacing="10.0" prefWidth="560.0">
+                <HBox alignment="CENTER_LEFT" prefWidth="560.0" spacing="10.0">
                     <children>
-                        <TextField fx:id="searchTransactionField"
-                                   promptText="Search by category name or date"
-                                   styleClass="field-input"
-                                   HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="searchTransactionField" promptText="Search by category name or date" styleClass="field-input" HBox.hgrow="ALWAYS" />
 
-                        <ComboBox fx:id="sortTransactionComboBox"
-                                  prefWidth="155.0"
-                                  promptText="Sort"
-                                  styleClass="field-input" />
+                        <ComboBox fx:id="sortTransactionComboBox" prefWidth="155.0" promptText="Sort" styleClass="field-input" />
                     </children>
                 </HBox>
 
@@ -99,4 +97,3 @@
     </bottom>
 
 </BorderPane>
-

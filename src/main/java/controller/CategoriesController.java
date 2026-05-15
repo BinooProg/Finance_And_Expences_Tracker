@@ -117,6 +117,7 @@ public class CategoriesController {
         } catch (IllegalArgumentException ex) {
             showError(ex.getMessage());
         } catch (Exception ex) {
+            showError(ex.getMessage());
             showError("Failed to delete category.");
         }
     }

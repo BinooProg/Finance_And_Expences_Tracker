@@ -1,61 +1,43 @@
 package service;
 
 import model.Category;
+import util.DatabaseConnection;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class CategoryService {
-    private static final String CATEGORIES_DIRECTORY = "src/main/resources/data/categories";
 
-    private final List<Category> categories = new ArrayList<>();
-    private Integer loadedUserId;
-    private final UserService userService = new UserService();
+    private final Connection con;
+
+    public CategoryService() {
+        this.con = DatabaseConnection.getDatabaseConnection().getConnection();
+    }
 
     public List<Category> getAllCategories() {
-        Integer currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            categories.clear();
-            loadedUserId = null;
-            return categories;
-        }
+        List<Category> categories = new ArrayList<>();
 
-        if (loadedUserId == null || !loadedUserId.equals(currentUserId)) {
-            categories.clear();
-            loadedUserId = currentUserId;
-        }
-
-        if (!categories.isEmpty()) {
-            return categories;
-        }
-
-        Path path = getUserCategoriesPath(currentUserId);
+        String sql = "SELECT id, name FROM Categories ORDER BY id";
 
         try {
-            ensureFileExists(path);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
 
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            for (String line : lines) {
-                if (line == null || line.isBlank()) {
-                    continue;
-                }
+            while (rs.next()) {
+                Category category = new Category(
+                        rs.getInt("id"),
+                        rs.getString("name")
+                );
 
-                String[] parts = line.split("\\|");
-                if (parts.length < 2) {
-                    continue;
-                }
-
-                int id = Integer.parseInt(parts[0].trim());
-                String name = parts[1].trim();
-
-                categories.add(new Category(id, name));
+                categories.add(category);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load categories from database.", e);
         }
 
         return categories;
@@ -66,38 +48,20 @@ public class CategoryService {
             throw new IllegalArgumentException("Category name is required.");
         }
 
-        Integer currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            throw new IllegalStateException("No logged-in user found.");
+        if (categoryExists(name)) {
+            throw new IllegalArgumentException("Category already exists.");
         }
 
-        getAllCategories();
-
-        String trimmedName = name.trim();
-        String normalizedInput = normalizeName(trimmedName);
-
-        for (Category c : categories) {
-            String normalizedExistingName = normalizeName(c.getName());
-            if (normalizedExistingName.equals(normalizedInput)) {
-                throw new IllegalArgumentException("Category already exists.");
-            }
-        }
-
-        int nextId = getNextId();
-        String row = nextId + "|" + trimmedName;
+        String sql = "INSERT INTO Categories (name) VALUES (?)";
 
         try {
-            Path path = getUserCategoriesPath(currentUserId);
-            ensureFileExists(path);
-            Files.writeString(
-                    path,
-                    row + System.lineSeparator(),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.APPEND
-            );
-            categories.add(new Category(nextId, trimmedName));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save category.", e);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, name.trim());
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to save category in database.", e);
         }
     }
 
@@ -106,105 +70,75 @@ public class CategoryService {
             throw new IllegalArgumentException("Category name is required.");
         }
 
-        getAllCategories();
+        if (categoryExistsForAnotherId(id, newName)) {
+            throw new IllegalArgumentException("Category already exists.");
+        }
 
-        String trimmedName = newName.trim();
-        String normalizedInput = normalizeName(trimmedName);
-        boolean found = false;
+        String sql = "UPDATE Categories SET name = ? WHERE id = ?";
 
-        for (Category category : categories) {
-            String normalizedExistingName = normalizeName(category.getName());
-            if (category.getId() != id && normalizedExistingName.equals(normalizedInput)) {
-                throw new IllegalArgumentException("Category already exists.");
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, newName.trim());
+            ps.setInt(2, id);
+
+            int rows = ps.executeUpdate();
+
+            if (rows == 0) {
+                throw new IllegalArgumentException("Category not found.");
             }
-        }
 
-        for (Category category : categories) {
-            if (category.getId() == id) {
-                category.setName(trimmedName);
-                found = true;
-                break;
-            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update category in database.", e);
         }
-
-        if (!found) {
-            throw new IllegalArgumentException("Category not found.");
-        }
-
-        rewriteAll();
     }
 
     public void deleteCategory(int id) {
-        getAllCategories();
-        boolean removed = categories.removeIf(category -> category.getId() == id);
-
-        if (!removed) {
-            throw new IllegalArgumentException("Category not found.");
-        }
-
-        rewriteAll();
-    }
-
-    private void rewriteAll() {
-        List<String> rows = new ArrayList<>();
-        for (Category c : categories) {
-            rows.add(c.getId() + "|" + c.getName());
-        }
+        String sql = "DELETE FROM Categories WHERE id = ?";
 
         try {
-            Integer currentUserId = getCurrentUserId();
-            if (currentUserId == null) {
-                throw new IllegalStateException("No logged-in user found.");
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            int rows = ps.executeUpdate();
+
+            if (rows == 0) {
+                throw new IllegalArgumentException("Category not found.");
             }
-            Files.write(
-                    getUserCategoriesPath(currentUserId),
-                    rows,
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.CREATE
-            );
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to update categories.", e);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                    "Cannot delete category. It may be used by existing transactions.", e );
         }
     }
 
-    private int getNextId() {
-        int max = 0;
-        for (Category c : getAllCategories()) {
-            if (c.getId() > max) {
-                max = c.getId();
-            }
-        }
-        return max + 1;
-    }
+    private boolean categoryExists(String name) {
+        String sql = "SELECT id FROM Categories WHERE LOWER(name) = LOWER(?)";
 
-    private Integer getCurrentUserId() {
-        String email = SessionManager.getLoggedInUserEmail();
-        if (email == null || email.trim().isEmpty()) {
-            return null;
-        }
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, name.trim());
 
-        var user = userService.getUserByEmail(email);
-        return user == null ? null : user.getId();
-    }
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
 
-    private Path getUserCategoriesPath(int userId) {
-        return Paths.get(CATEGORIES_DIRECTORY, userId + "_categories.txt");
-    }
-
-    private void ensureFileExists(Path path) throws IOException {
-        Path parent = path.getParent();
-
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
-
-        if (!Files.exists(path)) {
-            Files.createFile(path);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check category existence.", e);
         }
     }
 
-    private String normalizeName(String name) {
-        return name.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    private boolean categoryExistsForAnotherId(int id, String name) {
+        String sql = "SELECT id FROM Categories WHERE LOWER(name) = LOWER(?) AND id <> ?";
+
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, name.trim());
+            ps.setInt(2, id);
+
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check category existence.", e);
+        }
     }
 }

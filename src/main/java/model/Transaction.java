@@ -13,7 +13,7 @@ public class Transaction {
         this.user = user;
         this.category = category;
         this.amount = amount;
-        this.type = type.trim().equalsIgnoreCase("income") ? "income" : "expense";
+        this.type = type.trim().equalsIgnoreCase("Income") ? "Income" : "Expense";
         this.date = date;
     }
 

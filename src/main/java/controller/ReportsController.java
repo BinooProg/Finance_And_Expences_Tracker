@@ -1,7 +1,5 @@
 package controller;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.collections.FXCollections;
@@ -9,7 +7,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.util.Duration;
 import model.Transaction;
 import service.TransactionService;
 
@@ -58,9 +55,7 @@ public class ReportsController {
     private ComboBox<String> sortSummaryComboBox;
 
     private final TransactionService transactionService = new TransactionService();
-    private final Timeline reportAutoRefresh = new Timeline(
-            new KeyFrame(Duration.seconds(1), event -> refreshReportData())
-    );
+
     private final Comparator<CategorySummaryRow> byCategoryName =
             Comparator.comparing(CategorySummaryRow::categoryName, String.CASE_INSENSITIVE_ORDER);
 
@@ -70,14 +65,6 @@ public class ReportsController {
         configureSort();
         refreshReportData();
 
-        reportAutoRefresh.setCycleCount(Timeline.INDEFINITE);
-        reportAutoRefresh.play();
-
-        categorySummaryTable.sceneProperty().addListener((observable, oldScene, newScene) -> {
-            if (newScene == null) {
-                reportAutoRefresh.stop();
-            }
-        });
     }
 
     private void configureCategoryTable() {
@@ -99,29 +86,43 @@ public class ReportsController {
     }
 
     private void refreshReportData() {
-        List<Transaction> transactions = transactionService.getAllTransactions();
+        try {
+            List<Transaction> transactions = transactionService.getAllTransactions();
 
-        double income = sumByType(transactions, TYPE_INCOME);
-        double expenses = sumByType(transactions, TYPE_EXPENSE);
+            double income = sumByType(transactions, TYPE_INCOME);
+            double expenses = sumByType(transactions, TYPE_EXPENSE);
+            double balance = income - expenses;
 
-        double balance = income - expenses;
+            totalIncomeValueLabel.setText(formatAmount(income));
+            totalExpensesValueLabel.setText(formatAmount(expenses));
+            balanceValueLabel.setText(formatAmount(balance));
+            updateBalanceStyle(balance);
 
-        totalIncomeValueLabel.setText(formatAmount(income));
-        totalExpensesValueLabel.setText(formatAmount(expenses));
-        balanceValueLabel.setText(formatAmount(balance));
-        updateBalanceStyle(balance);
+            List<CategorySummaryRow> rows = transactions.stream()
+                    .collect(Collectors.groupingBy(
+                            transaction -> transaction.getCategory() == null
+                                    ? UNCATEGORIZED
+                                    : transaction.getCategory().getName()
+                    ))
+                    .entrySet()
+                    .stream()
+                    .map(this::toCategorySummaryRow)
+                    .collect(Collectors.toList());
 
-        List<CategorySummaryRow> rows = transactions.stream()
-                .collect(Collectors.groupingBy(
-                        transaction -> transaction.getCategory() == null ? UNCATEGORIZED : transaction.getCategory().getName()
-                ))
-                .entrySet()
-                .stream()
-                .map(this::toCategorySummaryRow)
-                .collect(Collectors.toList());
+            rows.sort(getSummaryComparator(sortSummaryComboBox.getValue()));
+            categorySummaryTable.getItems().setAll(rows);
 
-        rows.sort(getSummaryComparator(sortSummaryComboBox.getValue()));
-        categorySummaryTable.getItems().setAll(rows);
+        } catch (Exception e) {
+            totalIncomeValueLabel.setText("0.00");
+            totalExpensesValueLabel.setText("0.00");
+            balanceValueLabel.setText("0.00");
+            categorySummaryTable.getItems().clear();
+
+            util.WindowManager.showErrorAlert(
+                    "Reports Error",
+                    "Unable to generate reports from database."
+            );
+        }
     }
 
     private Comparator<CategorySummaryRow> getSummaryComparator(String sortOption) {

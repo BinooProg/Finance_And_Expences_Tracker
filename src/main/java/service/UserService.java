@@ -1,42 +1,46 @@
 package service;
 
 import model.User;
+import util.DatabaseConnection;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class UserService {
-    private static final String FILE_PATH = "src/main/resources/data/users.txt";
+
+    private final Connection con;
+
+    public UserService() {
+        this.con = DatabaseConnection.getDatabaseConnection().getConnection();
+    }
 
     public User getUserByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+
+        String sql = "SELECT * FROM Users WHERE email = ?";
+
         try {
-            List<String> lines = Files.readAllLines(Paths.get(FILE_PATH), StandardCharsets.UTF_8);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, email.trim());
 
-            for (String line : lines) {
-                if (line == null || line.isBlank()) {
-                    continue;
-                }
+            ResultSet rs = ps.executeQuery();
 
-                String[] parts = line.split("\\|");
-                if (parts.length < 5) {
-                    continue;
-                }
-
-                int id = Integer.parseInt(parts[0].trim());
-                String firstName = parts[1].trim();
-                String lastName = parts[2].trim();
-                String storedEmail = parts[3].trim();
-                String passwordHash = parts[4].trim();
-
-                if (storedEmail.equalsIgnoreCase(email.trim())) {
-                    return new User(id, firstName, lastName, storedEmail, passwordHash);
-                }
+            if (rs.next()) {
+                return new User(
+                        rs.getInt("id"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getString("email"),
+                        rs.getString("password_hash")
+                );
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load user from database.", e);
         }
 
         return null;

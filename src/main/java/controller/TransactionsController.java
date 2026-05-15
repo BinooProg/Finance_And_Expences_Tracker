@@ -170,6 +170,27 @@ public class TransactionsController {
         refreshTransactionsView();
     }
 
+    @FXML
+    protected void onDeleteTransactionButtonClick() {
+        if (selectedTransaction == null) {
+            WindowManager.showErrorAlert("Input Error", "Please select a transaction to delete.");
+            return;
+        }
+
+        try {
+            transactionService.deleteTransaction(selectedTransaction.getId());
+            WindowManager.showInfoAlert("Success", "Transaction deleted successfully.");
+
+            clearForm();
+            loadTransactions();
+
+        } catch (Exception e) {
+            String message = e.getMessage();
+            WindowManager.showErrorAlert("Delete Error",
+                    (message == null || message.isBlank()) ? "Unable to delete transaction." : message);
+        }
+    }
+
     private void bindSearchAndSort() {
         if (searchTransactionField != null) {
             searchTransactionField.textProperty().addListener((observable, oldValue, newValue) ->
@@ -196,7 +217,6 @@ public class TransactionsController {
                 : searchTransactionField.getText().trim().toLowerCase(Locale.ROOT);
 
         Comparator<Transaction> comparator = buildTransactionComparator(sortTransactionComboBox.getValue());
-        boolean categoryOrDateMatchExists = hasCategoryOrDateMatch(keyword);
 
         List<Transaction> viewData = transactions.stream()
                 .filter(transaction -> matchesTransactionKeyword(transaction, keyword))
@@ -205,15 +225,14 @@ public class TransactionsController {
 
         transactionsTable.setItems(FXCollections.observableArrayList(viewData));
 
-        if (keyword.isEmpty() || categoryOrDateMatchExists) {
+        if (keyword.isEmpty() || !viewData.isEmpty()) {
             lastSearchNotFoundKeyword = null;
             return;
         }
 
         if (!keyword.equals(lastSearchNotFoundKeyword)) {
             lastSearchNotFoundKeyword = keyword;
-            WindowManager.showErrorAlert("Search Not Found", "No transaction category or date found for that search.");
-        }
+            WindowManager.showErrorAlert("Search Not Found", "No transaction found for that search.");        }
     }
 
     private Comparator<Transaction> buildTransactionComparator(String sortOption) {
@@ -245,30 +264,17 @@ public class TransactionsController {
                 : transaction.getCategory().getName().toLowerCase(Locale.ROOT);
         String date = transaction.getDate() == null ? "" : transaction.getDate().toLowerCase(Locale.ROOT);
 
-        return categoryName.contains(keyword) || date.contains(keyword);
+        String type = transaction.getType() == null
+                ? ""
+                : transaction.getType().toLowerCase(Locale.ROOT);
+
+        String amount = String.valueOf(transaction.getAmount()).toLowerCase(Locale.ROOT);
+
+
+        return categoryName.contains(keyword) || date.contains(keyword)
+                || type.contains(keyword) || amount.contains(keyword);
     }
 
-    private boolean hasCategoryOrDateMatch(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return true;
-        }
-
-        return transactions.stream().anyMatch(transaction -> {
-            if (transaction == null || transaction.getCategory() == null || transaction.getCategory().getName() == null) {
-                String date = transaction == null || transaction.getDate() == null
-                        ? ""
-                        : transaction.getDate().toLowerCase(Locale.ROOT);
-                return date.contains(keyword);
-            }
-
-            String categoryName = transaction.getCategory().getName().toLowerCase(Locale.ROOT);
-            String date = transaction.getDate() == null
-                    ? ""
-                    : transaction.getDate().toLowerCase(Locale.ROOT);
-
-            return categoryName.contains(keyword) || date.contains(keyword);
-        });
-    }
 
     private void clearForm() {
         amountField.clear();
