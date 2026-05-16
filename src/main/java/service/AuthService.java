@@ -1,24 +1,19 @@
 package service;
 
-import java.io.*;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.regex.Pattern;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import util.HashUtil;
 
 public class AuthService {
-    private static final String FILE_PATH = "src/main/resources/data/users.txt";
-    private static final String DEFAULT_CATEGORIES_FILE_PATH = "src/main/resources/data/categories.txt";
-    private static final String USER_CATEGORIES_DIRECTORY = "src/main/resources/data/categories";
+    private static final String[] DEFAULT_CATEGORIES = {"Food", "Salary", "Transport", "Shopping", "Education"};
 
     /**
      * Registers a new user by validating input, checking email uniqueness, hashing the password,
-     * and appending the user record to the users file.
+     * and creating the user record in the database.
      *
      * @param firstName the user's first name
      * @param lastName the user's last name
@@ -26,7 +21,6 @@ public class AuthService {
      * @param rawPassword the user's plain-text password before hashing
      * @return true when the user record is created successfully
      * @throws IllegalArgumentException if any required input is blank or the email already exists
-     * @throws UncheckedIOException if writing user data fails
      */
     public boolean createUser(String firstName, String lastName, String email, String rawPassword) {
         if (isBlank(firstName) || isBlank(lastName) || isBlank(email) || isBlank(rawPassword)) {
@@ -37,18 +31,9 @@ public class AuthService {
         }
 
         String hashed = HashUtil.md5(rawPassword);
-        int nextId = getNextId();
-        String row = String.format("%d|%s|%s|%s|%s", nextId, firstName.trim(), lastName.trim(), email.trim(), hashed);
-
-        try {
-            ensureFileExists();
-            Files.writeString(getFilePath(), row + System.lineSeparator(), StandardCharsets.UTF_8,
-                    java.nio.file.StandardOpenOption.APPEND);
-            initializeUserCategoriesFile(nextId);
-            return true;
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to persist user data", e);
-        }
+        int createdUserId = createUserInDatabase(firstName, lastName, email, hashed);
+        initializeUserCategoriesInDatabase(createdUserId);
+        return true;
     }
 
     /**
@@ -58,7 +43,6 @@ public class AuthService {
      * @param rawPassword the plain-text password to verify
      * @return true when email exists and password hash matches; false when credentials do not match
      * @throws IllegalArgumentException if email or password is blank
-     * @throws UncheckedIOException if reading user data fails
      */
     public boolean validateUser(String email, String rawPassword) {
         if (isBlank(email) || isBlank(rawPassword)) {
@@ -66,31 +50,25 @@ public class AuthService {
         }
         String inputHash = HashUtil.md5(rawPassword);
 
-        try {
-            Path path = getFilePath();
-            if (!Files.exists(path)) {
-                return false;
+        String sql = """
+                SELECT password_hash
+                FROM Users
+                WHERE LOWER(email) = LOWER(?)
+                LIMIT 1
+                """;
+        try (Connection connection = DatabaseConfig.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, email.trim());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return false;
+                }
+                String storedHash = resultSet.getString("password_hash");
+                return storedHash != null && storedHash.equals(inputHash);
             }
-
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            for (String line : lines) {
-                if (line == null || line.isBlank()) {
-                    continue;
-                }
-                String[] parts = line.split("\\|");
-                if (parts.length < 5) {
-                    continue;
-                }
-                String storedEmail = parts[3].trim();
-                String storedHash = parts[4].trim();
-                if (storedEmail.equalsIgnoreCase(email.trim())) {
-                    return storedHash.equals(inputHash);
-                }
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read user data", e);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to validate user credentials", e);
         }
-        return false;
     }
 
     /**
@@ -98,105 +76,65 @@ public class AuthService {
      *
      * @param email the email to search for
      * @return true if a matching email is found; false otherwise
-     * @throws UncheckedIOException if reading user data fails
      */
     private boolean emailExists(String email) {
-        try {
-            Path path = getFilePath();
-            if (!Files.exists(path)) {
-                return false;
+        String sql = """
+                SELECT 1
+                FROM Users
+                WHERE LOWER(email) = LOWER(?)
+                LIMIT 1
+                """;
+        try (Connection connection = DatabaseConfig.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, email.trim());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
             }
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            for (String line : lines) {
-                String[] parts = line.split("\\|");
-                if (parts.length >= 4 && parts[3].trim().equalsIgnoreCase(email.trim())) {
-                    return true;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check email existence", e);
+        }
+    }
+
+
+    private int createUserInDatabase(String firstName, String lastName, String email, String hashedPassword) {
+        String sql = """
+                INSERT INTO Users (first_name, last_name, email, password_hash)
+                VALUES (?, ?, ?, ?)
+                """;
+        try (Connection connection = DatabaseConfig.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            statement.setString(1, firstName.trim());
+            statement.setString(2, lastName.trim());
+            statement.setString(3, email.trim());
+            statement.setString(4, hashedPassword);
+            int rows = statement.executeUpdate();
+            if (rows == 0) {
+                throw new RuntimeException("Failed to create user record");
+            }
+            try (ResultSet keys = statement.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
                 }
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to check email existence", e);
+            throw new RuntimeException("Failed to retrieve generated user id");
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create user in database", e);
         }
-        return false;
     }
 
-
-    /**
-     * Calculates the next available user ID based on the maximum existing ID in the users file.
-     *
-     * @return the next sequential user ID starting from 1
-     * @throws UncheckedIOException if reading user data fails
-     */
-    private int getNextId() {
-        int maxId = 0;
-        try {
-            Path path = getFilePath();
-            if (!Files.exists(path)) {
-                return 1;
+    private void initializeUserCategoriesInDatabase(int userId) {
+        String sql = "INSERT INTO Categories (user_id, name) VALUES (?, ?)";
+        try (Connection connection = DatabaseConfig.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (String categoryName : DEFAULT_CATEGORIES) {
+                statement.setInt(1, userId);
+                statement.setString(2, categoryName);
+                statement.addBatch();
             }
-            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            for (String line : lines) {
-                String[] parts = line.split("\\|");
-                if (parts.length > 0) {
-                    try {
-                        int id = Integer.parseInt(parts[0].trim());
-                        if (id > maxId) {
-                            maxId = id;
-                        }
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to generate next user id", e);
+            statement.executeBatch();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to initialize user categories", e);
         }
-        return maxId + 1;
-    }
-
-    /**
-     * Ensures that the users file and its parent directory exist.
-     *
-     * @throws IOException if directory or file creation fails
-     */
-    private void ensureFileExists() throws IOException {
-        Path path = getFilePath();
-        Path parent = path.getParent();
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
-        if (!Files.exists(path)) {
-            Files.createFile(path);
-        }
-    }
-
-    /**
-     * Resolves and returns the filesystem path of the users data file.
-     *
-     * @return the path to users.txt
-     */
-    private Path getFilePath() {
-        return Paths.get(FILE_PATH);
-    }
-
-    private void initializeUserCategoriesFile(int userId) throws IOException {
-        Path categoriesDir = Paths.get(USER_CATEGORIES_DIRECTORY);
-        if (!Files.exists(categoriesDir)) {
-            Files.createDirectories(categoriesDir);
-        }
-
-        Path userCategoriesPath = categoriesDir.resolve(userId + "_categories.txt");
-        if (Files.exists(userCategoriesPath)) {
-            return;
-        }
-
-        Path DefaultCategoriesPath = Paths.get(DEFAULT_CATEGORIES_FILE_PATH);
-        if (!Files.exists(DefaultCategoriesPath)) {
-            Files.createFile(userCategoriesPath);
-            return;
-        }
-
-        List<String> defaultCategories = Files.readAllLines(DefaultCategoriesPath, StandardCharsets.UTF_8);
-        Files.write(userCategoriesPath, defaultCategories, StandardCharsets.UTF_8,
-                java.nio.file.StandardOpenOption.CREATE_NEW);
     }
 
     /**
